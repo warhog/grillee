@@ -1,0 +1,51 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>
+      LotusBLE
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="disconnect()">
+        <ion-icon slot="end" name="close-circle"></ion-icon>
+        Disconnect
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content padding [fullscreen]="true">
+  <p>fanspeed: {{ bleData.fan }} %</p>
+  <p>rpm: {{ bleData.rpm }} rpm</p>
+  <p>alarm: {{ bleData.alarm }}</p>
+
+  <ion-item>
+    <ion-label position="stacked">Stacked Label</ion-label>
+    <ion-input placeholder="Setpoint 1" clearInput type="number" autocomplete="off" debounce="250" inputmode="numeric" min="0" step="1" max="100" [ngModel]="bleData.setpoint1"></ion-input>
+    <ion-button clear slot="end" (click)="onSetSetpoint1()">Test</ion-button>
+  </ion-item>
+  <ion-item>
+    <ion-label position="stacked">Stacked Label</ion-label>
+    <ion-input placeholder="Setpoint 2" clearInput type="number" autocomplete="off" debounce="250" inputmode="numeric" min="0" step="1" max="100" [value]="bleData.setpoint2"></ion-input>
+    <ion-button clear slot="end" (click)="onSetSetpoint2()">Test</ion-button>
+  </ion-item>
+
+  <p>setpoint1: {{ bleData.setpoint1 }} </p>
+  <p>setpoint2: {{ bleData.setpoint2 }} </p>
+  <p>temperature1: {{ bleData.temperature1 }} </p>
+  <p>temperature2: {{ bleData.temperature2 }} </p>
+  <p>battery: {{ bleData.battery }} </p>
+
+
+  <ion-item>
+    <ion-range min="10" max="100" step="5" snaps="true" debounce="250" pin [value]="bleData.fan" (ionChange)="onChangeFanSpeed($event.target.value)">
+      <ion-icon slot="start" name="remove"></ion-icon>
+      <ion-icon slot="end" name="add"></ion-icon>
+    </ion-range>
+  </ion-item>
+
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <p>{{ statusMessage }}</p>
+  </ion-toolbar>
+</ion-footer>
