@@ -1,6 +1,6 @@
 import { BLE } from '@ionic-native/ble/ngx';
 import { Component, NgZone } from '@angular/core';
-import { ToastController } from '@ionic/angular';
+import { ToastController, Platform } from '@ionic/angular';
 import { NavController } from '@ionic/angular';
 import { NavigationExtras } from '@angular/router';
 import { BleDevice } from '../models/bledevice';
@@ -17,10 +17,22 @@ export class HomePage {
   private _devices: BleDevice[] = [];
   private _statusMessage: string = "";
 
-  constructor(public navCtrl: NavController, private toastCtrl: ToastController, private ble: BLE, private ngZone: NgZone) {}
+  constructor(
+    public navCtrl: NavController,
+    private toastCtrl: ToastController,
+    private ble: BLE,
+    private ngZone: NgZone,
+    private platform: Platform
+  ) {}
   
   ionViewDidEnter() {
     this.scan();
+  }
+
+  ionViewWillEnter() {
+    this.platform.backButton.subscribeWithPriority(1, () => {
+      navigator['app'].exitApp();
+    });
   }
 
   async scan() {
@@ -38,13 +50,6 @@ export class HomePage {
       error => this.scanError(error)
     );
     
-    // setTimeout(async () => {
-    //   let toast = await this.toastCtrl.create({
-    //     message: 'Scan completed.',
-    //     duration: 1000
-    //   });
-    //   toast.present();
-    // }, 3000);
   }
 
   onDeviceDiscovered(device: BleDevice) {

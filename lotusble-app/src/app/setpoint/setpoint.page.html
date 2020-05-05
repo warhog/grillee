@@ -1,0 +1,30 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title>Setpoint</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismissModal()">Close</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content fullscreen >
+<ion-item>
+  <ion-label>Type</ion-label>
+  <ion-select name="selectionMeatType" interface="popover" [(ngModel)]="selectedMeatType" [compareWith]="compareMeatType" (ionChange)="onChangeMeatType($event.target.value)" multiple="false" required>
+    <ion-select-option *ngFor="let meatType of meatTypes" [value]="meatType">{{meatType.name}}</ion-select-option>
+  </ion-select>
+</ion-item>
+
+<ion-item>
+  <ion-label>Doneness</ion-label>
+  <ion-select name="selectionTemperature" interface="popover" [(ngModel)]="selectedTemperature" [compareWith]="compareMeatTemperature" multiple="false" required>
+    <ion-select-option *ngFor="let meatTemperature of meatTemperatures" [value]="meatTemperature">{{meatTemperature.name}}</ion-select-option>
+  </ion-select>
+</ion-item>
+
+<ion-item>
+  <ion-label position="stacked">Custom temperature</ion-label>
+  <ion-input [disabled]="!isCustomMeatTypeSelected()" name="selectionCustomTemperature" placeholder="Enter temperature" clearInput type="number" autocomplete="off" inputmode="numeric" min="0" step="5" max="200" [(ngModel)]="customTemperature"></ion-input>
+</ion-item>
+
+</ion-content>

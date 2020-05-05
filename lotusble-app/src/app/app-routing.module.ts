@@ -14,6 +14,10 @@ const routes: Routes = [
   {
     path: 'mainview',
     loadChildren: () => import('./mainview/mainview.module').then( m => m.MainviewPageModule)
+  },
+  {
+    path: 'setpoint',
+    loadChildren: () => import('./setpoint/setpoint.module').then( m => m.SetpointPageModule)
   }
 ];
 

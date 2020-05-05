@@ -12,6 +12,10 @@ const unsigned int PIN_ADC_BATTERY = 35;
 const unsigned int PIN_ADC_MEAT_PROBE1 = 36;
 const unsigned int PIN_ADC_MEAT_PROBE2 = 37;
 const unsigned int PIN_RPM = 33;
+const unsigned int PIN_ALARM_BUZZER = 14;
+
+const float BATTERY_CORRECTION_OFFSET = +0.27;
+const float BATTERY_CORRECTION_FACTOR = 1.0;
 
 // minimum rpm, below alarm detection is triggered
 const unsigned int MIN_RPM = 300;
@@ -57,7 +61,8 @@ TimeoutMs timeoutRpm(UPDATE_RPM_EVERY_X_MILLIS);
 #ifdef DEBUG
 TimeoutS timeoutRpmSerial(1);
 #endif
-TimeoutMs timeoutReadAnalog(25);
+TimeoutMs timeoutReadPoti(25);
+TimeoutS timeoutReadBattery(1);
 TimeoutS timeoutAlarm(1);
 Toggle toggleAlarm;
 
@@ -75,8 +80,8 @@ EdgeDetector<unsigned int> temperature1Changed(0);
 EdgeDetector<unsigned int> temperature2Changed(0);
 int16_t temperature1 = -100;
 int16_t temperature2 = -100;
-uint16_t setpoint1 = 100;
-uint16_t setpoint2 = 100;
+uint16_t setpoint1 = 80;
+uint16_t setpoint2 = 80;
 
 BleServer bleServer;
 
@@ -104,8 +109,13 @@ void initFan() {
 
 }
 
+void initBattery() {
+    pinMode(PIN_ADC_BATTERY, INPUT);
+}
+
 void initTemperature() {
-    
+    pinMode(PIN_ADC_MEAT_PROBE1, INPUT);
+    pinMode(PIN_ADC_MEAT_PROBE2, INPUT);
 }
 
 void controlByBleCallback(bool control) {
@@ -150,6 +160,7 @@ void setup() {
     analogSetPinAttenuation(PIN_ADC_POTI, ADC_11db);
 
     initFan();
+    initBattery();
     initTemperature();
 
     bleServer.begin();
@@ -170,9 +181,7 @@ void setup() {
 
 }
 
-
-void loop() {
-
+void rpmLoop() {
     if (timeoutRpm()) {
         timeoutRpm.reset();
         rpm = ((ticksRpm * RPM_CALCULATION_TIMEFRAME) / PULSES_PER_ROTATION);
@@ -195,22 +204,8 @@ void loop() {
         }
     }
 
-    alarmGeneral = alarmFan || alarmBattery;
-    if (alarmChanged(alarmGeneral, true) || alarmBatteryChanged(alarmBattery, true) || alarmFanChanged(alarmFan, true)) {
-#ifdef DEBUG
-        Serial.println("sending alarm");
-#endif
-        bleServer.setAlarm(true);
-    }
-    if (alarmChanged(alarmGeneral, false)) {
-        bleServer.setAlarm(false);
-    }
-    
-    if (alarmGeneral && timeoutAlarm()) {
-        timeoutAlarm.reset();
-        if (toggleAlarm()) {
-            Serial.println("ALARM");
-        }
+    if (rpmChanged(rpm)) {
+        bleServer.setRpm(rpm);
     }
 
 #ifdef DEBUG
@@ -222,9 +217,11 @@ void loop() {
         timeoutRpmSerial.reset();
     }
 #endif
+}
 
-    if (!controlByBle && timeoutReadAnalog()) {
-        timeoutReadAnalog.reset();
+void fanLoop() {
+    if (!controlByBle && timeoutReadPoti()) {
+        timeoutReadPoti.reset();
         unsigned int potiAnalogValue = analogRead(PIN_ADC_POTI);
         potiAnalogSmooth = static_cast<float>(potiAnalogValue) * 0.50 + static_cast<float>(potiAnalogSmooth) * 0.50;
         unsigned int fanPercentSmoothed = static_cast<unsigned int>((potiAnalogSmooth / 4096.0) * 100.0);
@@ -243,17 +240,30 @@ void loop() {
         ledcWrite(0, fanSpeedRaw);
         bleServer.setFan(fanPercent);
     }
+}
+
+void batteryLoop() {
+    if (timeoutReadBattery()) {
+        timeoutReadBattery.reset();
+        // 6.6 = 6.6V => voltage divider with 10k:10k => double the adc max input voltage from 3.3v
+        float batteryAnalogValue = static_cast<float>(analogRead(PIN_ADC_BATTERY)) * (6.6 / 4096.0);
+        batteryAnalogValue *= BATTERY_CORRECTION_FACTOR;
+        batteryAnalogValue += BATTERY_CORRECTION_OFFSET;
+        batteryVoltage = batteryAnalogValue * 0.50 + batteryVoltage * 0.5;
+#ifdef DEBUG
+        Serial.printf("battery voltage: %f\n", batteryVoltage);
+#endif
+    }
 
     if (batteryChanged(batteryVoltage)) {
-        if (batteryVoltage < 5.0) {
+        if (batteryVoltage < 4.5) {
             alarmBattery = true;
         }
+        bleServer.setBattery(batteryVoltage);
     }
+}
 
-    if (rpmChanged(rpm)) {
-        bleServer.setRpm(rpm);
-    }
-
+void temperatureLoop() {
     if (temperature1Changed(temperature1)) {
         bleServer.setTemperature1(temperature1);
     }
@@ -261,5 +271,31 @@ void loop() {
     if (temperature2Changed(temperature2)) {
         bleServer.setTemperature2(temperature2);
     }
+}
+
+void loop() {
+
+    alarmGeneral = alarmFan || alarmBattery;
+    if (alarmChanged(alarmGeneral, true) || alarmBatteryChanged(alarmBattery, true) || alarmFanChanged(alarmFan, true)) {
+#ifdef DEBUG
+        Serial.println("sending alarm");
+#endif
+        bleServer.setAlarm(true);
+    }
+    if (alarmChanged(alarmGeneral, false)) {
+        bleServer.setAlarm(false);
+    }
+    
+    if (alarmGeneral && timeoutAlarm()) {
+        timeoutAlarm.reset();
+        if (toggleAlarm()) {
+            Serial.println("ALARM");
+        }
+    }
+
+    rpmLoop();
+    fanLoop();
+    batteryLoop();
+    temperatureLoop();
 
 }

@@ -19,7 +19,12 @@ import { FormsModule } from '@angular/forms';
 @NgModule({
   declarations: [AppComponent, BleDeviceNamePipe],
   entryComponents: [],
-  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, FormsModule],
+  imports: [
+    BrowserModule, 
+    IonicModule.forRoot(), 
+    AppRoutingModule, 
+    FormsModule
+  ],
   providers: [
     StatusBar,
     SplashScreen,

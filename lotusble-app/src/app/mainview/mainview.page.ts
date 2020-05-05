@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { BleData } from '../models/bledata';
 import { BleDevice } from '../models/bledevice';
 import { BLE } from '@ionic-native/ble/ngx';
-import { NavController, ToastController, LoadingController, Platform } from '@ionic/angular';
+import { NavController, ToastController, LoadingController, Platform, ModalController } from '@ionic/angular';
 import { BleAlarm } from '../models/blealarm';
 import { BlePeripheral } from '../models/bleperipheral';
 import { AudioService } from '../audio.service';
@@ -13,6 +13,8 @@ import { BackgroundMode } from '@ionic-native/background-mode/ngx';
 import { LocalNotifications } from '@ionic-native/local-notifications/ngx';
 import { AlarmService } from '../alarm.service';
 import { Alarm } from '../models/alarm';
+import { SetpointPage } from '../setpoint/setpoint.page';
+import { MeatTemperatureService } from '../meat-temperature.service';
 
 const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 const LOTUSBLE_CHARACTERISTIC_ALARM_UUID = '06817906-f5db-4d66-86e4-776e74074cd6';
@@ -24,7 +26,7 @@ const LOTUSBLE_CHARACTERISTIC_TEMPERATURE2_UUID = '94570d21-a9ca-45d7-a313-82385
 const LOTUSBLE_CHARACTERISTIC_FAN_UUID = '0303ed74-974e-4ae2-8cee-7296eaffadfa';
 const LOTUSBLE_CHARACTERISTIC_RPM_UUID = '26552eef-1507-4e7d-8845-99b815841856';
 const LOTUSBLE_CHARACTERISTIC_BATTERY_UUID = '12325d24-0357-4877-b57a-d323793b44b3';
-const MIN_FAN_RPM = 600;
+const MIN_FAN_RPM = 300;
 
 interface ReadAndRegisterData {
   uuid: string,
@@ -67,11 +69,14 @@ export class MainviewPage implements OnInit {
   };
 
   private _statusMessage: string = "";
+  private _rssi: number = 0;
+  private _batteryIcon: number = 1.0;
   private loadingOverlay: any = null;
   private intervalAlarm: Subscription = null;
+  private intervalAlarmBlink: Subscription = null;
+  private alarmBlink: boolean = false;
   private connected: boolean = false;
   private connectionLost: boolean = false;
-  // private writeLock: Array<number> = [];
   private backButtonSubscription: Subscription = null;
   private readAndResisterEntries: ReadAndRegisterData[] = [];
   private intervalReadAndRegisterBLE: Subscription = null;
@@ -79,8 +84,14 @@ export class MainviewPage implements OnInit {
   private backButtonPressed: number = 0;
   private intervalRssi: Subscription = null;
 
+  // used for modal setpoint dialog
+  private meatTypeTemperature1: MeatTypeTemperature = { meatTypeId: '', name: '', temperature: 100 };
+  private meatTypeTemperature2: MeatTypeTemperature = { meatTypeId: '', name: '', temperature: 100 };
+
   constructor(private backgroundMode: BackgroundMode,
+    private meatTemperatureService: MeatTemperatureService,
     private platform: Platform,
+    private modalController: ModalController,
     private alarmService: AlarmService,
     private localNotifications: LocalNotifications,
     private audioService: AudioService, 
@@ -91,7 +102,8 @@ export class MainviewPage implements OnInit {
     private ble: BLE, 
     private router: Router, 
     private ngZone: NgZone) {
-
+      this.meatTypeTemperature1 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
+      this.meatTypeTemperature2 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
   }
 
   ngOnInit() {
@@ -106,7 +118,12 @@ export class MainviewPage implements OnInit {
         );
       }
     });
-    
+
+
+    this.intervalAlarmBlink = IntervalObservable.create(500).subscribe(() => {
+      this.alarmBlink = !this.alarmBlink;
+    });
+
     this.intervalAlarm = IntervalObservable.create(10 * 1000).subscribe(() => {
       if (this.connected && this.connectionLost) {
         this.audioService.play('beep');
@@ -136,6 +153,14 @@ export class MainviewPage implements OnInit {
     });
   }
 
+  hasAlarmFooter() {
+    return this.bleData.alarm;
+  }
+
+  getAlarmFooterColor() {
+    return this.alarmBlink ? "danger" : "warning";
+  }
+
   /**
    * create a loading overlay with given text
    * @param text loading text
@@ -159,6 +184,14 @@ export class MainviewPage implements OnInit {
     }
   }
 
+  getMeatTypeString(which: number) {
+    if (which == 1) {
+      return this.meatTemperatureService.getMeatTypeString(this.meatTypeTemperature1);
+    } else {
+      return this.meatTemperatureService.getMeatTypeString(this.meatTypeTemperature2);
+    }
+  }
+
   /**
    * callback for fan speed changes by the UI
    * @param newFanSpeed the new fan speed
@@ -175,33 +208,46 @@ export class MainviewPage implements OnInit {
    * callback for setpoint button
    */
   onSetSetpoint1() {
-    this.sendBLEData(LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID, this.bleData.setpoint1.toString());
+    this.presentSetpointModal(1, this.meatTypeTemperature1);
   }
 
   /**
    * callback for setpoint button
    */
   onSetSetpoint2() {
-    this.sendBLEData(LOTUSBLE_CHARACTERISTIC_SETPOINT2_UUID, this.bleData.setpoint2.toString());
+    this.presentSetpointModal(2, this.meatTypeTemperature2);
   }
 
-  // hasWriteLock(): boolean {
-  //   return this.writeLock.length > 0;
-  // }
-
-  // setWriteLock(): number {
-  //   let rnd: number =  Math.floor(Math.random() * Math.floor(999999));
-  //   this.writeLock.push(rnd);
-  //   return rnd;
-  // }
-
-  // unsetWriteLock(id: number) {
-  //   this.writeLock = this.writeLock.filter(item => item != id);
-  // }
-
-  // bytesToString(buffer: ArrayBuffer): string {
-  //   return String.fromCharCode.apply(null, new Uint8Array(buffer));
-  // }
+  /**
+   * presents the setpoint page as modal
+   * @param setpoint which setpoint (0 or 1)
+   * @param meatTypeTemperature the meat and temperature storage
+   */
+  async presentSetpointModal(setpoint: number, meatTypeTemperature: MeatTypeTemperature) {
+    const modal = await this.modalController.create({
+      component: SetpointPage,
+      componentProps: {
+        'meatTypeTemperature': meatTypeTemperature,
+      }
+    });
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    console.log('data modal:', data);
+    if (!data || !data.meatTypeTemperature) {
+      console.log('strange data from setpoint page returned', data);
+      return;
+    }
+    let meatTypeTemperatureResponse: MeatTypeTemperature = data.meatTypeTemperature as MeatTypeTemperature;
+    if (setpoint == 1) {
+      this.meatTypeTemperature1 = meatTypeTemperatureResponse;
+      this.bleData.setpoint1 = this.meatTypeTemperature1.temperature;
+      this.sendBLEData(LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID, this.bleData.setpoint1.toString());
+    } else {
+      this.meatTypeTemperature2 = meatTypeTemperatureResponse;
+      this.bleData.setpoint2 = this.meatTypeTemperature2.temperature;
+      this.sendBLEData(LOTUSBLE_CHARACTERISTIC_SETPOINT2_UUID, this.bleData.setpoint2.toString());
+    }
+  }
 
   stringToBytes(str: string): ArrayBuffer {
     var array = new Uint8Array(str.length);
@@ -250,21 +296,32 @@ export class MainviewPage implements OnInit {
   onDeviceConnected(peripheral: BlePeripheral) {
     this.connectionLost = false;
     this.connected = true;
-    this.setStatus('Connected, receiving data...');
 
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_FAN_UUID, 'uint16_t', (value: number) => { this.ngZone.run(() => { this.bleData.fan = value; })});
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_RPM_UUID, 'uint16_t', (value: number) => { this.ngZone.run(() => { this.bleData.rpm = value; })});
-    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_BATTERY_UUID, 'float32_t', (value: number) => { this.ngZone.run(() => { this.bleData.battery = value; })});
+    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_BATTERY_UUID, 'float32_t', (value: number) => {
+      let batteryIcon: number = 1.0;
+      if (value > 4.9 && value < 5.2) {
+        batteryIcon = 0.5;
+      } else if (value < 4.9) {
+        batteryIcon = 0.0;
+      }
+      console.log('battery icon: ' + batteryIcon + ', value: ' + value);
+      this.ngZone.run(() => {
+        this.batteryIcon = batteryIcon;
+        this.bleData.battery = value;
+      })
+    });
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_TEMPERATURE1_UUID, 'int16_t', (value: number) => { this.ngZone.run(() => { this.bleData.temperature1 = value; })});
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_TEMPERATURE2_UUID, 'int16_t', (value: number) => { this.ngZone.run(() => { this.bleData.temperature2 = value; })});
-    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID, 'uint16_t', (value: number) => { this.ngZone.run(() => { this.bleData.setpoint1 = value; })});
+    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID, 'uint16_t', (value: number) => { this.ngZone.run(() => { console.log('sp1', value); this.bleData.setpoint1 = value; })});
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SETPOINT2_UUID, 'uint16_t', (value: number) => { this.ngZone.run(() => { this.bleData.setpoint2 = value; })});
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_ALARM_UUID, 'bool', (value: boolean) => { this.ngZone.run(() => { this.bleData.alarm = value; this.handleAlarm(value); })});
 
     if (this.intervalRssi == null) {
       this.intervalRssi = IntervalObservable.create(5000).subscribe(() => {
         this.ble.readRSSI(this.bleDevice.id).then((rssi) => {
-          this.setStatus('RSSI: ' + rssi);
+          this.rssi = rssi;
         }, (msg) => {
           console.log('rssi read failed');
         })
@@ -407,7 +464,7 @@ export class MainviewPage implements OnInit {
         console.log('notification for', entry.uuid);
         this.readBLEData(entry);
       },
-      async (msg) => {
+      (msg) => {
         entry.registered = false;
         console.log('cannot subscribe to ', entry.uuid, msg);
       }
@@ -420,20 +477,12 @@ export class MainviewPage implements OnInit {
    * @param data the string data to send
    */
   sendBLEData(characteristic: string, data: string) {
-    // let writeLockId: number = this.setWriteLock();
-    let temp: ArrayBuffer = this.stringToBytes(data);
-    this.ble.write(this.bleDevice.id, LOTUSBLE_SERVICE_UUID, characteristic, temp).then(
+    this.ble.write(this.bleDevice.id, LOTUSBLE_SERVICE_UUID, characteristic, this.stringToBytes(data)).then(
       result => {
         console.log('ble write result: ', result);
-        // this.unsetWriteLock(writeLockId);
-      }).catch(async (msg) => {
+      }).catch((msg) => {
         console.log('cannot write ble data: ', msg);
-        let toast = await this.toastCtrl.create({
-          message: 'Cannot write data to device (' + msg + ').',
-          duration: 3000
-        });
-        toast.present();
-        // this.unsetWriteLock(writeLockId);
+        this.showToast('Cannot write data to device (' + msg + ').', 3000);
       });
   }
 
@@ -443,7 +492,7 @@ export class MainviewPage implements OnInit {
    */
   readBLEData(entry: ReadAndRegisterData) {
     this.ble.read(this.bleDevice.id, LOTUSBLE_SERVICE_UUID, entry.uuid).then(
-      async (data) => {
+      (data) => {
         entry.read = true;
         if (entry.datatype == 'uint8_t') {
           entry.updateFn(new Uint8Array(data)[0]);
@@ -466,13 +515,8 @@ export class MainviewPage implements OnInit {
           return;
         }
       },
-      async (msg) => {
+      (msg) => {
         console.log('cannot read data: ', msg);
-        let toast = await this.toastCtrl.create({
-          message: 'Cannot read data: ' + msg,
-          duration: 3000
-        });
-        toast.present();
       }
     );
   }
@@ -578,6 +622,12 @@ export class MainviewPage implements OnInit {
       this.intervalReadAndRegisterBLE.unsubscribe();
       this.intervalReadAndRegisterBLE = null;
     }
+
+    if (this.intervalAlarmBlink != null) {
+      this.intervalAlarmBlink.unsubscribe();
+      this.intervalAlarmBlink = null;
+    }
+
     if (this.intervalRssi != null) {
       this.intervalRssi.unsubscribe();
       this.intervalRssi = null;
@@ -586,21 +636,10 @@ export class MainviewPage implements OnInit {
     this.navCtrl.navigateRoot(['/home']);
   }
 
-  /**
-   * show the back button exit message
-   */
-  async showExitMessage() {
-    let toast = await this.toastCtrl.create({
-      message: 'Press again to exit...',
-      duration: 2000
-    });
-    toast.present();
-  }
-
   ionViewWillEnter() {
-    this.backButtonSubscription = this.platform.backButton.subscribeWithPriority(1, async () => {
+    this.backButtonSubscription = this.platform.backButton.subscribeWithPriority(1, () => {
       if (this.backButtonPressed == 0) {
-        this.showExitMessage();
+        this.showToast('Press again to exit...', 2000);
         this.backButtonPressed++;
         setTimeout(() => {
           console.log('reverting back button exit action');
@@ -658,5 +697,17 @@ export class MainviewPage implements OnInit {
   }
   public set bleAlarm(value: BleAlarm) {
     this._bleAlarm = value;
+  }
+  public get rssi(): number {
+    return this._rssi;
+  }
+  public set rssi(value: number) {
+    this._rssi = value;
+  }
+  public get batteryIcon(): number {
+    return this._batteryIcon;
+  }
+  public set batteryIcon(value: number) {
+    this._batteryIcon = value;
   }
 }

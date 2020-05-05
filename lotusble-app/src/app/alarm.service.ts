@@ -47,7 +47,8 @@ export class AlarmService {
       this.alarms.push({
         type: type,
         state: state,
-        acked: acked
+        acked: acked,
+        id: null
       });
     }
   }

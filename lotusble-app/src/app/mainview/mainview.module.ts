@@ -7,14 +7,18 @@ import { IonicModule } from '@ionic/angular';
 import { MainviewPageRoutingModule } from './mainview-routing.module';
 
 import { MainviewPage } from './mainview.page';
+import { SetpointPage } from '../setpoint/setpoint.page';
+import { SetpointPageModule } from '../setpoint/setpoint.module';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    MainviewPageRoutingModule
+    MainviewPageRoutingModule,
+    SetpointPageModule
   ],
-  declarations: [MainviewPage]
+  declarations: [MainviewPage],
+  entryComponents: [SetpointPage]
 })
 export class MainviewPageModule {}
