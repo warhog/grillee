@@ -16,11 +16,11 @@
   <ion-text class="ion-text-center">
     <h3>Probe 1</h3>
     <h1>
-      <ion-text color="danger">{{ bleData.temperature1 }} °C </ion-text>
-      <ion-text class="small" color="success">{{ bleData.setpoint1 }} °C</ion-text>
+      <ion-text color="danger">{{ bleData.temperature1 | probe }} </ion-text>
+      <ion-text [hidden]="bleData.temperature1 <= -100" class="small" color="success">{{ bleData.setpoint1 }} °C</ion-text>
     </h1>
   </ion-text>
-  <ion-text color="medium" class="ion-text-center">
+  <ion-text [hidden]="bleData.temperature1 <= -100" color="medium" class="ion-text-center">
     <p>
       {{getMeatTypeString(1)}}<br />
       <ion-button color="secondary" size="small" (click)="onSetSetpoint1()">Change</ion-button>
@@ -32,11 +32,11 @@
   <ion-text class="ion-text-center">
     <h3>Probe 2</h3>
     <h1>
-      <ion-text color="danger">{{ bleData.temperature2 }} °C </ion-text>
-      <ion-text class="small" color="success">{{ bleData.setpoint2 }} °C</ion-text>
+      <ion-text color="danger">{{ bleData.temperature2 | probe }} </ion-text>
+      <ion-text [hidden]="bleData.temperature2 <= -100" class="small" color="success">{{ bleData.setpoint2 }} °C</ion-text>
     </h1>
   </ion-text>
-  <ion-text color="medium" class="ion-text-center">
+  <ion-text [hidden]="bleData.temperature2 <= -100" color="medium" class="ion-text-center">
     <p>
       {{getMeatTypeString(2)}}<br />
       <ion-button color="secondary" size="small" (click)="onSetSetpoint2()">Change</ion-button>

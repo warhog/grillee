@@ -4,18 +4,21 @@
 #include "edgedetector.h"
 #include "bleserver.h"
 
+#include "battery.h"
+#include "adc.h"
+#include "sensortype.h"
+#include "probe.h"
+
 #define DEBUG
 
-const unsigned int PIN_FAN = 17;
-const unsigned int PIN_ADC_POTI = 34;
-const unsigned int PIN_ADC_BATTERY = 35;
-const unsigned int PIN_ADC_MEAT_PROBE1 = 36;
-const unsigned int PIN_ADC_MEAT_PROBE2 = 37;
-const unsigned int PIN_RPM = 33;
-const unsigned int PIN_ALARM_BUZZER = 14;
-
-const float BATTERY_CORRECTION_OFFSET = +0.27;
-const float BATTERY_CORRECTION_FACTOR = 1.0;
+const gpio_num_t PIN_FAN = GPIO_NUM_17;
+const gpio_num_t PIN_ADC_POTI = GPIO_NUM_34;
+const gpio_num_t PIN_ADC_BATTERY = GPIO_NUM_35;
+const gpio_num_t PIN_ADC_MEAT_PROBE1 = GPIO_NUM_32;
+const gpio_num_t PIN_ADC_MEAT_PROBE2 = GPIO_NUM_33;
+const gpio_num_t PIN_RPM = GPIO_NUM_27;
+const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_14;
+const gpio_num_t PIN_DEFAULT_VOLTAGE_OUTPUT = GPIO_NUM_26;
 
 // minimum rpm, below alarm detection is triggered
 const unsigned int MIN_RPM = 300;
@@ -50,40 +53,37 @@ unsigned int rpmAlarmCounter{0};
 bool alarmGeneral{false};
 bool alarmFan{false};
 bool alarmBattery{false};
-bool alarmTemperature1{false};
-bool alarmTemperature2{false};
-
-float batteryVoltage{6.0};
-
-const char *VERSION_BLE = "1.0";
+bool alarmProbe1{false};
+bool alarmProbe2{false};
 
 TimeoutMs timeoutRpm(UPDATE_RPM_EVERY_X_MILLIS);
 #ifdef DEBUG
 TimeoutS timeoutRpmSerial(1);
 #endif
 TimeoutMs timeoutReadPoti(25);
-TimeoutS timeoutReadBattery(1);
 TimeoutS timeoutAlarm(1);
 Toggle toggleAlarm;
 
 EdgeDetector<bool> alarmChanged(false);
 EdgeDetector<bool> alarmBatteryChanged(false);
 EdgeDetector<bool> alarmFanChanged(false);
-EdgeDetector<bool> alarmTemperature1Changed(false);
-EdgeDetector<bool> alarmTemperature2Changed(false);
+EdgeDetector<bool> alarmProbe1Changed(false);
+EdgeDetector<bool> alarmProbe2Changed(false);
 
 EdgeDetector<unsigned int> fanPercentChanged(0, 5);
 EdgeDetector<float> batteryChanged(0, 0.1);
 EdgeDetector<unsigned int> rpmChanged(0, 100);
 
-EdgeDetector<unsigned int> temperature1Changed(0);
-EdgeDetector<unsigned int> temperature2Changed(0);
-int16_t temperature1 = -100;
-int16_t temperature2 = -100;
+EdgeDetector<unsigned int> probe1Changed(0, 1);
+EdgeDetector<unsigned int> probe2Changed(0, 1);
 uint16_t setpoint1 = 80;
 uint16_t setpoint2 = 80;
 
 BleServer bleServer;
+
+Battery battery(PIN_ADC_BATTERY);
+Probe probe1(PIN_ADC_MEAT_PROBE1, SensorType::PRO05);
+Probe probe2(PIN_ADC_MEAT_PROBE2, SensorType::PRO05);
 
 // ISR function for the rpm reading
 void IRAM_ATTR rpmIsr() {
@@ -107,10 +107,6 @@ void initFan() {
     // attach pin change interrupt to rpm pin on falling edges
     attachInterrupt(PIN_RPM, rpmIsr, FALLING);
 
-}
-
-void initBattery() {
-    pinMode(PIN_ADC_BATTERY, INPUT);
 }
 
 void initTemperature() {
@@ -143,6 +139,17 @@ void setpointWriteCallback(uint16_t value, uint8_t number) {
     }
 }
 
+void sensorTypeWriteCallback(uint8_t sensorType, uint8_t number) {
+#ifdef DEBUG
+    Serial.printf("sensortype write callback %d: %d\n", number, sensorType);
+#endif
+    if (number == 1) {
+        probe1.setSensorType(SensorData::getSensorTypeByIndex(sensorType));
+    } else if (number == 2) {
+        probe2.setSensorType(SensorData::getSensorTypeByIndex(sensorType));
+    }
+}
+
 void alarmAckWriteCallback() {
 #ifdef DEBUG
     Serial.println("alarm ack callback");
@@ -156,11 +163,14 @@ void setup() {
 #endif
 
     // set analog pin for reading the poti
-    analogSetAttenuation(ADC_11db);
     analogSetPinAttenuation(PIN_ADC_POTI, ADC_11db);
 
+    // Adc::enableVrefOutput(PIN_DEFAULT_VOLTAGE_OUTPUT);
+    // for (;;) {
+    //     yield();
+    // }
+    
     initFan();
-    initBattery();
     initTemperature();
 
     bleServer.begin();
@@ -168,16 +178,19 @@ void setup() {
     bleServer.setFanWriteCallback(&fanWriteCallback);
     bleServer.setSetpointWriteCallback(&setpointWriteCallback);
     bleServer.setAlarmAckWriteCallback(&alarmAckWriteCallback);
+    bleServer.setSensorTypeCallback(&sensorTypeWriteCallback);
     bleServer.start();
 
     bleServer.setAlarm(false);
-    bleServer.setBattery(batteryVoltage);
+    bleServer.setBattery(6.0);
     bleServer.setFan(fanPercent);
     bleServer.setRpm(rpm);
     bleServer.setSetpoint1(setpoint1);
     bleServer.setSetpoint2(setpoint2);
-    bleServer.setTemperature1(temperature1);
-    bleServer.setTemperature2(temperature2);
+    bleServer.setTemperature1(probe1.getProbeTemperature());
+    bleServer.setTemperature2(probe2.getProbeTemperature());
+
+    
 
 }
 
@@ -242,37 +255,6 @@ void fanLoop() {
     }
 }
 
-void batteryLoop() {
-    if (timeoutReadBattery()) {
-        timeoutReadBattery.reset();
-        // 6.6 = 6.6V => voltage divider with 10k:10k => double the adc max input voltage from 3.3v
-        float batteryAnalogValue = static_cast<float>(analogRead(PIN_ADC_BATTERY)) * (6.6 / 4096.0);
-        batteryAnalogValue *= BATTERY_CORRECTION_FACTOR;
-        batteryAnalogValue += BATTERY_CORRECTION_OFFSET;
-        batteryVoltage = batteryAnalogValue * 0.50 + batteryVoltage * 0.5;
-#ifdef DEBUG
-        Serial.printf("battery voltage: %f\n", batteryVoltage);
-#endif
-    }
-
-    if (batteryChanged(batteryVoltage)) {
-        if (batteryVoltage < 4.5) {
-            alarmBattery = true;
-        }
-        bleServer.setBattery(batteryVoltage);
-    }
-}
-
-void temperatureLoop() {
-    if (temperature1Changed(temperature1)) {
-        bleServer.setTemperature1(temperature1);
-    }
-
-    if (temperature2Changed(temperature2)) {
-        bleServer.setTemperature2(temperature2);
-    }
-}
-
 void loop() {
 
     alarmGeneral = alarmFan || alarmBattery;
@@ -295,7 +277,22 @@ void loop() {
 
     rpmLoop();
     fanLoop();
-    batteryLoop();
-    temperatureLoop();
+
+    if (probe1Changed(probe1.update())) {
+        bleServer.setTemperature1(probe1.getProbeTemperature());
+    }
+
+    if (probe2Changed(probe2.update())) {
+        bleServer.setTemperature2(probe2.getProbeTemperature());
+    }
+
+    battery.update();
+    float batteryVoltage = battery.getBatteryVoltage();
+    if (batteryChanged(batteryVoltage)) {
+        if (batteryVoltage < 4.5) {
+            alarmBattery = true;
+        }
+        bleServer.setBattery(batteryVoltage);
+    }
 
 }

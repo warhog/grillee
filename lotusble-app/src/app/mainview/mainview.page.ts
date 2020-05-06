@@ -12,7 +12,6 @@ import { IntervalObservable } from 'rxjs/observable/IntervalObservable'
 import { BackgroundMode } from '@ionic-native/background-mode/ngx';
 import { LocalNotifications } from '@ionic-native/local-notifications/ngx';
 import { AlarmService } from '../alarm.service';
-import { Alarm } from '../models/alarm';
 import { SetpointPage } from '../setpoint/setpoint.page';
 import { MeatTemperatureService } from '../meat-temperature.service';
 
@@ -541,12 +540,12 @@ export class MainviewPage implements OnInit {
       console.log('temperature1 >= setpoint1');
       this.bleAlarm.alarm = true;
       this.bleAlarm.alarmTemperature1 = true;
-      this.createLocalAlarmNotification('alarmTemperature1', 3, 'Temperature 1 reached set temperature')
+      this.createLocalAlarmNotification('alarmTemperature1', 3, 'Probe 1 reached set temperature')
     } else if (this.bleData.temperature2 >= this.bleData.setpoint2) {
       console.log('temperature2 >= setpoint2');
       this.bleAlarm.alarm = true;
       this.bleAlarm.alarmTemperature2 = true;
-      this.createLocalAlarmNotification('alarmTemperature2', 4, 'Temperature 2 reached set temperature')
+      this.createLocalAlarmNotification('alarmTemperature2', 4, 'Probe 2 reached set temperature')
     } else {
       console.log('no alarm');
       this.bleAlarm.alarm = false;
@@ -556,35 +555,6 @@ export class MainviewPage implements OnInit {
       this.bleAlarm.alarmTemperature2 = false;
     }
   }
-  // handleAlarm(type: string, state: boolean, text: string, alarmId: number) {
-  //   let notify: boolean = false;
-  //   if (this.alarmService.hasAlarm(type))  {
-  //     console.log('has alarm: ', type);
-  //     let alarm: Alarm = this.alarmService.getAlarm(type);
-  //     if (alarm.state != state) {
-  //       // alarm state has changed, update alarm
-  //       console.log('alarm state changed ', alarm.state, '->', state);
-  //       alarm.state = state;
-  //       alarm.acked = false;
-  //       if (state) {
-  //         // alarm got active -> notification
-  //         notify = true;
-  //         console.log('notify for alarm');
-  //       }
-  //     }
-  //   } else {
-  //     this.alarmService.createAlarm(type, state, false);
-  //     // new alarm -> notification
-  //     console.log('alarm created: ', type);
-  //     if (state) {
-  //       console.log('alarm notify');
-  //       notify = true;
-  //     }
-  //   }
-  //   if (notify) {
-  //     this.createLocalAlarmNotification(type, alarmId, text);
-  //   }
-  // }
 
   /**
    * create a local alarm notification

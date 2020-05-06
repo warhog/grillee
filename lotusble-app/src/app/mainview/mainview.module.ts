@@ -9,6 +9,7 @@ import { MainviewPageRoutingModule } from './mainview-routing.module';
 import { MainviewPage } from './mainview.page';
 import { SetpointPage } from '../setpoint/setpoint.page';
 import { SetpointPageModule } from '../setpoint/setpoint.module';
+import { ProbePipe } from '../probe.pipe';
 
 @NgModule({
   imports: [
@@ -18,7 +19,7 @@ import { SetpointPageModule } from '../setpoint/setpoint.module';
     MainviewPageRoutingModule,
     SetpointPageModule
   ],
-  declarations: [MainviewPage],
+  declarations: [MainviewPage, ProbePipe],
   entryComponents: [SetpointPage]
 })
 export class MainviewPageModule {}
