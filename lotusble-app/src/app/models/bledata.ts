@@ -1,3 +1,5 @@
+import { SensorType } from '../sensor-type.enum';
+
 export interface BleData {
     fan: number,
     rpm: number,
@@ -6,5 +8,7 @@ export interface BleData {
     setpoint2: number,
     temperature1: number,
     temperature2: number,
-    battery: number
+    battery: number,
+    sensorType1: SensorType,
+    sensorType2: SensorType
 }

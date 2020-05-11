@@ -26,7 +26,8 @@ export class HomePage {
   ) {}
   
   ionViewDidEnter() {
-    this.scan();
+    // this.scan();
+    this.deviceSelected({id:'',name:'',rssi:0});
   }
 
   ionViewWillEnter() {

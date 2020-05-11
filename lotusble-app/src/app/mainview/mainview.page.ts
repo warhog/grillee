@@ -14,6 +14,9 @@ import { LocalNotifications } from '@ionic-native/local-notifications/ngx';
 import { AlarmService } from '../alarm.service';
 import { SetpointPage } from '../setpoint/setpoint.page';
 import { MeatTemperatureService } from '../meat-temperature.service';
+import { SensorType } from '../sensor-type.enum';
+import { SensorTypeService } from '../sensor-type.service';
+import { SensorTypeModel } from '../models/sensortype';
 
 const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 const LOTUSBLE_CHARACTERISTIC_ALARM_UUID = '06817906-f5db-4d66-86e4-776e74074cd6';
@@ -25,6 +28,8 @@ const LOTUSBLE_CHARACTERISTIC_TEMPERATURE2_UUID = '94570d21-a9ca-45d7-a313-82385
 const LOTUSBLE_CHARACTERISTIC_FAN_UUID = '0303ed74-974e-4ae2-8cee-7296eaffadfa';
 const LOTUSBLE_CHARACTERISTIC_RPM_UUID = '26552eef-1507-4e7d-8845-99b815841856';
 const LOTUSBLE_CHARACTERISTIC_BATTERY_UUID = '12325d24-0357-4877-b57a-d323793b44b3';
+const LOTUSBLE_CHARACTERISTIC_SENSORTYPE1_UUID = 'a4b7ca52-c743-4931-9153-ec28030a41a4';
+const LOTUSBLE_CHARACTERISTIC_SENSORTYPE2_UUID = '7488eed8-6b19-4391-9a83-9c97d6f10319';
 const MIN_FAN_RPM = 300;
 
 interface ReadAndRegisterData {
@@ -49,11 +54,13 @@ export class MainviewPage implements OnInit {
     fan: 100,
     rpm: 0,
     alarm: false,
-    battery: 6.0,
-    setpoint1: 100,
-    setpoint2: 100,
+    battery: 0.0,
+    setpoint1: 0,
+    setpoint2: 0,
     temperature1: 0,
-    temperature2: 0
+    temperature2: 0,
+    sensorType1: SensorType.UNKNOWN,
+    sensorType2: SensorType.UNKNOWN
   };
   private _bleAlarm: BleAlarm = {
     alarm: false,
@@ -93,63 +100,67 @@ export class MainviewPage implements OnInit {
     private modalController: ModalController,
     private alarmService: AlarmService,
     private localNotifications: LocalNotifications,
-    private audioService: AudioService, 
-    private loadingCtrl: LoadingController, 
-    private toastCtrl: ToastController, 
-    private navCtrl: NavController, 
-    private route: ActivatedRoute, 
-    private ble: BLE, 
-    private router: Router, 
+    private audioService: AudioService,
+    private loadingCtrl: LoadingController,
+    private toastCtrl: ToastController,
+    private navCtrl: NavController,
+    private route: ActivatedRoute,
+    private ble: BLE,
+    private router: Router,
+    private sensorTypeService: SensorTypeService,
     private ngZone: NgZone) {
       this.meatTypeTemperature1 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
       this.meatTypeTemperature2 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      if (this.router.getCurrentNavigation().extras.state) {
-        this.bleDevice = this.router.getCurrentNavigation().extras.state.device;
-        this.createLoadingOverlay();
-        this.statusMessage = 'Connecting to ' + this.bleDevice.name;
-        this.ble.autoConnect(this.bleDevice.id,
-          (peripheral: BlePeripheral) => this.onDeviceConnected(peripheral),
-          (disconnectData) => this.onConnectionError(disconnectData)
-        );
-      }
-    });
+    // this.route.queryParams.subscribe(params => {
+    //   if (this.router.getCurrentNavigation().extras.state) {
+    //     this.bleDevice = this.router.getCurrentNavigation().extras.state.device;
+    //     this.createLoadingOverlay();
+    //     this.statusMessage = 'Connecting to ' + this.bleDevice.name;
+    //     this.ble.autoConnect(this.bleDevice.id,
+    //       (peripheral: BlePeripheral) => this.onDeviceConnected(peripheral),
+    //       (disconnectData) => this.onConnectionError(disconnectData)
+    //     );
+    //   }
+    // });
 
 
-    this.intervalAlarmBlink = IntervalObservable.create(500).subscribe(() => {
-      this.alarmBlink = !this.alarmBlink;
-    });
+    // // TODO reset alarm on probe temperature setpoint changes
 
-    this.intervalAlarm = IntervalObservable.create(10 * 1000).subscribe(() => {
-      if (this.connected && this.connectionLost) {
-        this.audioService.play('beep');
-        // this.localNotifications.schedule({
-        //   id: 1,
-        //   text: 'Lost connection to LotusBLE'
-        // });
-      } else if (this.connected && !this.connectionLost && this.bleAlarm.alarm) {
-        this.audioService.play('alarm');
-      }
-    });
+    // this.intervalAlarmBlink = IntervalObservable.create(500).subscribe(() => {
+    //   this.alarmBlink = !this.alarmBlink;
+    // });
 
-    this.backgroundMode.enable();
-    this.backgroundMode.setDefaults({
-      'title': 'LotusBLE',
-      'text': 'Receive values from bluetooth device in background.'
-    });
+    // this.intervalAlarm = IntervalObservable.create(10 * 1000).subscribe(() => {
+    //   if (this.connected && this.connectionLost) {
+    //     this.audioService.play('beep');
+    //     // TODO notification
+    //     // this.localNotifications.schedule({
+    //     //   id: 1,
+    //     //   text: 'Lost connection to LotusBLE'
+    //     // });
+    //   } else if (this.connected && !this.connectionLost && this.bleAlarm.alarm) {
+    //     this.audioService.play('alarm');
+    //   }
+    // });
 
-    this.backgroundMode.on('activate').subscribe(() => {
-      console.log('activated background mode');
-      this.backgroundMode.disableWebViewOptimizations();
-      this.backgroundMode.disableBatteryOptimizations();
-    });
+    // this.backgroundMode.enable();
+    // this.backgroundMode.setDefaults({
+    //   'title': 'LotusBLE',
+    //   'text': 'Receive values from bluetooth device in background.'
+    // });
 
-    this.backgroundMode.on('deactivate').subscribe(() => {
-      console.log('deactivated background mode');
-    });
+    // this.backgroundMode.on('activate').subscribe(() => {
+    //   console.log('activated background mode');
+    //   this.backgroundMode.disableWebViewOptimizations();
+    //   this.backgroundMode.disableBatteryOptimizations();
+    // });
+
+    // this.backgroundMode.on('deactivate').subscribe(() => {
+    //   console.log('deactivated background mode');
+    // });
   }
 
   hasAlarmFooter() {
@@ -183,6 +194,16 @@ export class MainviewPage implements OnInit {
     }
   }
 
+  // TODO doc
+  getSensorTypeString(which: number) {
+    if (which == 1) {
+      return this.sensorTypeService.getSensorTypeModelBySensorType(this.bleData.sensorType1).name;
+    } else {
+      return this.sensorTypeService.getSensorTypeModelBySensorType(this.bleData.sensorType2).name;
+    }
+  }
+
+  // TODO doc
   getMeatTypeString(which: number) {
     if (which == 1) {
       return this.meatTemperatureService.getMeatTypeString(this.meatTypeTemperature1);
@@ -316,6 +337,15 @@ export class MainviewPage implements OnInit {
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID, 'uint16_t', (value: number) => { this.ngZone.run(() => { console.log('sp1', value); this.bleData.setpoint1 = value; })});
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SETPOINT2_UUID, 'uint16_t', (value: number) => { this.ngZone.run(() => { this.bleData.setpoint2 = value; })});
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_ALARM_UUID, 'bool', (value: boolean) => { this.ngZone.run(() => { this.bleData.alarm = value; this.handleAlarm(value); })});
+    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SENSORTYPE1_UUID, 'uint8_t', (value: number) => { this.ngZone.run(() => {
+      // TODO test if value valid and sensorTypeModel is not undefined
+      let sensorTypeModel: SensorTypeModel = this.sensorTypeService.getSensorTypeModelByIndex(value);
+      this.bleData.sensorType1 = sensorTypeModel.type;
+    })});
+    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SENSORTYPE2_UUID, 'uint8_t', (value: number) => { this.ngZone.run(() => {
+      let sensorTypeModel: SensorTypeModel = this.sensorTypeService.getSensorTypeModelByIndex(value);
+      this.bleData.sensorType2 = sensorTypeModel.type;
+    })});
 
     if (this.intervalRssi == null) {
       this.intervalRssi = IntervalObservable.create(5000).subscribe(() => {
@@ -577,9 +607,11 @@ export class MainviewPage implements OnInit {
     this.localNotifications.on('ack').subscribe((alarmDetails) => {
       console.log('ack', alarmDetails);
       if (alarmDetails.id == id) {
-        // if (this.alarmService.hasAlarm(type)) {
-        //   this.alarmService.getAlarm(type).acked = true;
-        // }
+        let keyName = alarmDetails.type + 'Ack';
+        if (keyName in this.bleAlarm) {
+          console.log('ack ', keyName);
+          this.bleAlarm[alarmDetails.type + 'Ack'] = true;
+        }
       }
     });
   }
