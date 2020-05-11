@@ -43,11 +43,11 @@ interface ReadAndRegisterData {
 }
 
 @Component({
-  selector: 'app-mainview',
-  templateUrl: './mainview.page.html',
-  styleUrls: ['./mainview.page.scss'],
+  selector: 'app-thermometer',
+  templateUrl: './thermometer.page.html',
+  styleUrls: ['./thermometer.page.scss'],
 })
-export class MainviewPage implements OnInit {
+export class ThermometerPage implements OnInit {
 
   private _bleDevice: BleDevice = null;
   private _bleData: BleData = {

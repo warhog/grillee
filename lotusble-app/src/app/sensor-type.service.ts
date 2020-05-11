@@ -27,6 +27,10 @@ export class SensorTypeService {
 
   constructor() { }
 
+  getSensorTypeModels(): Array<SensorTypeModel> {
+    return this.sensorTypes;
+  }
+
   getSensorTypeModelByIndex(sensorTypeIndex: number): SensorTypeModel {
     return this.sensorTypes[sensorTypeIndex];
   }

@@ -12,12 +12,16 @@ const routes: Routes = [
     pathMatch: 'full'
   },
   {
-    path: 'mainview',
-    loadChildren: () => import('./mainview/mainview.module').then( m => m.MainviewPageModule)
+    path: 'thermometer',
+    loadChildren: () => import('./thermometer/thermometer.module').then( m => m.ThermometerPageModule)
   },
   {
     path: 'setpoint',
     loadChildren: () => import('./setpoint/setpoint.module').then( m => m.SetpointPageModule)
+  },
+  {
+    path: 'settings',
+    loadChildren: () => import('./settings/settings.module').then( m => m.SettingsPageModule)
   }
 ];
 

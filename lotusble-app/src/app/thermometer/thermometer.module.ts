@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 
 import { IonicModule } from '@ionic/angular';
 
-import { MainviewPageRoutingModule } from './mainview-routing.module';
+import { ThermometerPageRoutingModule } from './thermometer-routing.module';
 
-import { MainviewPage } from './mainview.page';
+import { ThermometerPage } from './thermometer.page';
 import { SetpointPage } from '../setpoint/setpoint.page';
 import { SetpointPageModule } from '../setpoint/setpoint.module';
 import { ProbePipe } from '../probe.pipe';
@@ -16,10 +16,10 @@ import { ProbePipe } from '../probe.pipe';
     CommonModule,
     FormsModule,
     IonicModule,
-    MainviewPageRoutingModule,
+    ThermometerPageRoutingModule,
     SetpointPageModule
   ],
-  declarations: [MainviewPage, ProbePipe],
+  declarations: [ThermometerPage, ProbePipe],
   entryComponents: [SetpointPage]
 })
-export class MainviewPageModule {}
+export class ThermometerPageModule {}

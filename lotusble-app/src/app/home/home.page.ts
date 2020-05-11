@@ -75,7 +75,7 @@ export class HomePage {
         device: device
       }
     };
-    this.navCtrl.navigateRoot(['/mainview'], navigationExtras);
+    this.navCtrl.navigateRoot(['/thermometer'], navigationExtras);
   }
 
   public get devices(): BleDevice[] {

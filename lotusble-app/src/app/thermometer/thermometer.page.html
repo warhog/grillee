@@ -23,7 +23,10 @@
   <ion-text [hidden]="bleData.temperature1 <= -100" color="medium" class="ion-text-center">
     <p>
       {{getMeatTypeString(1)}} {{getSensorTypeString(1)}}<br />
-      <ion-button color="secondary" size="small" (click)="onSetSetpoint1()">Change</ion-button>
+      <ion-button color="secondary" size="small" (click)="onSetSetpoint1()">
+        <ion-icon slot="start" name="thermometer"></ion-icon>
+        Change
+      </ion-button>
     </p>
   </ion-text>
 
@@ -39,7 +42,10 @@
   <ion-text [hidden]="bleData.temperature2 <= -100" color="medium" class="ion-text-center">
     <p>
       {{getMeatTypeString(2)}}<br />
-      <ion-button color="secondary" size="small" (click)="onSetSetpoint2()">Change</ion-button>
+      <ion-button color="secondary" size="small" (click)="onSetSetpoint2()">
+        <ion-icon slot="start" name="thermometer"></ion-icon>
+        Change
+      </ion-button>
     </p>
   </ion-text>
 
