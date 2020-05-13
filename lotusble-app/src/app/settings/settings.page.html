@@ -8,7 +8,9 @@
 </ion-header>
 
 <ion-content>
-  Sensor settings
+  <ion-item>
+    <h2>Sensor settings</h2>
+  </ion-item>
   <ion-item>
     <ion-label>Probe 1</ion-label>
     <ion-select name="selectionSensorType" interface="popover" [(ngModel)]="selectedSensorType1" [compareWith]="compareSensorTypeModel" (ionChange)="onChangeSensorType(1)" multiple="false" required>
@@ -20,6 +22,13 @@
     <ion-select name="selectionSensorType" interface="popover" [(ngModel)]="selectedSensorType2" [compareWith]="compareSensorTypeModel" (ionChange)="onChangeSensorType(2)" multiple="false" required>
       <ion-select-option *ngFor="let sensorType of sensorTypes" [value]="sensorType">{{sensorType.name}}</ion-select-option>
     </ion-select>
+  </ion-item>
+  <ion-item>
+    <h2>General</h2>
+  </ion-item>
+  <ion-item>
+    <ion-label>Show temperatures in °F (Fahrenheit)</ion-label>
+    <ion-checkbox slot="end" [(ngModel)]="fahrenheit" (ionChange)="onChangeTemperatureAsFahrenheit()"></ion-checkbox>
   </ion-item>
   
 </ion-content>

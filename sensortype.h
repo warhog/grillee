@@ -41,20 +41,20 @@ class SensorData {
                 return SensorType::UNKNOWN;
             }
             switch (index) {
-                case 0: return SensorType::MAVERICK; break;
-                case 1: return SensorType::FANTAST_NEW; break;
-                case 2: return SensorType::FANTAST; break;
-                case 3: return SensorType::IGRILL2; break;
-                case 4: return SensorType::ET73; break;
-                case 5: return SensorType::PERFEKTION; break;
-                case 6: return SensorType::GENERIC_50K; break;
-                case 7: return SensorType::INKBIRD; break;
-                case 8: return SensorType::NTC100K6A1B; break;
-                case 9: return SensorType::WEBER6743; break;
-                case 10: return SensorType::SANTOS; break;
-                case 11: return SensorType::NTC5K3A1B; break;
-                case 12: return SensorType::THERMOWORKS; break;
-                case 13: return SensorType::PRO05; break;
+                case 1: return SensorType::MAVERICK; break;
+                case 2: return SensorType::FANTAST_NEW; break;
+                case 3: return SensorType::FANTAST; break;
+                case 4: return SensorType::IGRILL2; break;
+                case 5: return SensorType::ET73; break;
+                case 6: return SensorType::PERFEKTION; break;
+                case 7: return SensorType::GENERIC_50K; break;
+                case 8: return SensorType::INKBIRD; break;
+                case 9: return SensorType::NTC100K6A1B; break;
+                case 10: return SensorType::WEBER6743; break;
+                case 11: return SensorType::SANTOS; break;
+                case 12: return SensorType::NTC5K3A1B; break;
+                case 13: return SensorType::THERMOWORKS; break;
+                case 14: return SensorType::PRO05; break;
                 default: return SensorType::UNKNOWN;
             }
         }

@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { Storage } from '@ionic/storage';
 
 const STORAGE_KEY_BLE_DEVICE = 'bleDevice';
+const STORAGE_KEY_TEMPERATURE_AS_FAHRENHEIT = 'fahrenheit';
 
 @Injectable({
   providedIn: 'root'
@@ -14,6 +15,7 @@ export class UtilService {
   private loadingOverlay: any = null;
   private backButtonSubscription: Subscription = null;
   private backButtonPressed: number = 0;
+  private temperatureAsFahrenheit: boolean = false;
 
   constructor(private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
@@ -65,6 +67,40 @@ export class UtilService {
 
   clearBleDevice() {
     this.storage.remove(STORAGE_KEY_BLE_DEVICE);
+  }
+
+  getTemperatureAsFahrenheit(): boolean {
+    return this.temperatureAsFahrenheit;
+  }
+
+  loadTemperatureAsFahrenheit(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.storage.get(STORAGE_KEY_TEMPERATURE_AS_FAHRENHEIT).then(
+        (bool: boolean) => {
+        console.log('stored temperature as fahrenheit', bool);
+        if (bool != null) {
+          this.temperatureAsFahrenheit = bool;
+          resolve(bool);
+        } else {
+          console.log('bool is null');
+          reject();
+        }
+      },
+      (error: string) => {
+        console.log('storage error', error)
+        reject();
+      });
+    });
+  }
+
+  storeTemperatureAsFahrenheit(bool: boolean) {
+    console.log('storing temperature as fahrenheit', bool);
+    this.temperatureAsFahrenheit = bool;
+    this.storage.set(STORAGE_KEY_TEMPERATURE_AS_FAHRENHEIT, bool);
+  }
+
+  clearTemperatureAsFahrenheit() {
+    this.storage.remove(STORAGE_KEY_TEMPERATURE_AS_FAHRENHEIT);
   }
 
   /**

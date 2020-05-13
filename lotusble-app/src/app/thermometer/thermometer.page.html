@@ -14,7 +14,7 @@
     <h3>Probe 1</h3>
     <p>
       <ion-text color="danger" class="temperature">{{ temperatureProbe1 | probe }} </ion-text>
-      <ion-text [hidden]="temperatureProbe1 <= -100" class="small" color="success">{{ setpoint1 }} °C</ion-text>
+      <ion-text [hidden]="temperatureProbe1 <= -100" class="small" color="success">{{ setpoint1 | probe }}</ion-text>
     </p>
   </ion-text>
   <ion-text [hidden]="temperatureProbe1 <= -100" color="medium" class="ion-text-center">
@@ -33,7 +33,7 @@
     <h3>Probe 2</h3>
     <p>
       <ion-text color="danger" class="temperature">{{ temperatureProbe2 | probe }} </ion-text>
-      <ion-text [hidden]="temperatureProbe2 <= -100" class="small" color="success">{{ setpoint2 }} °C</ion-text>
+      <ion-text [hidden]="temperatureProbe2 <= -100" class="small" color="success">{{ setpoint2 | probe }}</ion-text>
     </p>
   </ion-text>
   <ion-text [hidden]="temperatureProbe2 <= -100" color="medium" class="ion-text-center">

@@ -4,6 +4,7 @@ import { Platform } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AudioService } from './audio.service';
+import { UtilService } from './util.service';
 
 @Component({
   selector: 'app-root',
@@ -15,18 +16,22 @@ export class AppComponent implements OnInit {
     private platform: Platform,
     private splashScreen: SplashScreen,
     private statusBar: StatusBar,
-    private audioService: AudioService
+    private audioService: AudioService,
+    private utilService: UtilService
   ) {
     this.initializeApp();
   }
 
   initializeApp() {
     this.platform.ready().then(() => {
-        this.audioService.preload('alarm', 'assets/analog-watch-alarm_daniel-simion.mp3');
-        this.audioService.preload('beep', 'assets/Beep-SoundBible.com-923660219.mp3');
-        this.statusBar.styleDefault();
+      this.audioService.preload('alarm', 'assets/analog-watch-alarm_daniel-simion.mp3');
+      this.audioService.preload('beep', 'assets/Beep-SoundBible.com-923660219.mp3');
+      this.statusBar.styleDefault();
+      this.utilService.loadTemperatureAsFahrenheit();
+    
       this.splashScreen.hide();
     });
+
   }
 
   private _selectedIndex = 0;

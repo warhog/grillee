@@ -16,7 +16,7 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <p [hidden]="devices.length > 0">No devices found.</p>
+  <p [hidden]="devices.length > 0 || hasLoaded">No devices found.</p>
    <ion-list>
     <button ion-item *ngFor="let device of devices" (click)="deviceSelected(device)">
       <h2>{{ device.name || 'Unknown' }}</h2>

@@ -133,8 +133,8 @@ public:
         }
     }
 
-    void setFan(uint16_t fan) {
-        _characteristicFan->setValue(fan);
+    void setFan(uint8_t fan) {
+        _characteristicFan->setValue(std::string((char *)&fan, 1));
         if (_devicesConnected > 0) {
             _characteristicFan->notify();
         }

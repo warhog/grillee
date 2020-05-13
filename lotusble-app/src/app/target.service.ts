@@ -67,6 +67,17 @@ export class TargetService {
     this.datapoints.push(data);
   }
 
+  // TODO doc
+  getReadAndRegisterDataForUuid(uuid: string): ReadAndRegisterData {
+    let data: Array<ReadAndRegisterData> = this.datapoints.filter((entry: ReadAndRegisterData) => {
+      return entry.uuid == uuid;
+    });
+    if (data.length > 0) {
+      return data[0];
+    }
+    return null;
+  }
+
   /**
    * connect to the given ble device
    * 
@@ -74,7 +85,7 @@ export class TargetService {
    */
   connect(bleDevice: BleDevice = null, connectedCallback: Function = null) {
     if (!this.connected) {
-      this.utilService.createLoadingOverlay();
+      this.utilService.createLoadingOverlay('Connecting... please wait...');
       this.bleDevice = bleDevice;
       this.ble.autoConnect(this.bleDevice.id,
         (peripheral: BlePeripheral) => this.onDeviceConnected(peripheral, connectedCallback),
@@ -195,18 +206,33 @@ export class TargetService {
     fanSpeed = Math.max(Math.min(fanSpeed, 100), 10);
     console.log('fan speed after limiting ' + fanSpeed);
     this.sendBleDataNumber(LOTUSBLE_CHARACTERISTIC_FAN_UUID, 'uint8_t', fanSpeed);
+    this.getSubscriptionForFanSpeed().next(fanSpeed);
   }
 
   setSetpoint1(setpoint: number) {
     console.log('changed setpoint1 ' + setpoint);
     setpoint = Math.max(Math.min(setpoint, 200), 0);
     this.sendBleDataNumber(LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID, 'uint16_t', setpoint);
+    this.getSubscriptionForSetpoint1().next(setpoint);
   }
 
   setSetpoint2(setpoint: number) {
     console.log('changed setpoint2 ' + setpoint);
     setpoint = Math.max(Math.min(setpoint, 200), 0);
     this.sendBleDataNumber(LOTUSBLE_CHARACTERISTIC_SETPOINT2_UUID, 'uint16_t', setpoint);
+    this.getSubscriptionForSetpoint2().next(setpoint);
+  }
+
+  setSensorType1(sensorType: number) {
+    console.log('changed sensor type 1 ' + sensorType);
+    this.sendBleDataNumber(LOTUSBLE_CHARACTERISTIC_SENSORTYPE1_UUID, 'uint8_t', sensorType);
+    this.getSubscriptionForSensorType1().next(sensorType);
+  }
+
+  setSensorType2(sensorType: number) {
+    console.log('changed sensor type 2 ' + sensorType);
+    this.sendBleDataNumber(LOTUSBLE_CHARACTERISTIC_SENSORTYPE2_UUID, 'uint8_t', sensorType);
+    this.getSubscriptionForSensorType2().next(sensorType);
   }
 
   /**
@@ -219,7 +245,7 @@ export class TargetService {
 
     this.utilService.storeBleDevice(this.bleDevice);
 
-    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_FAN_UUID, 'uint16_t');
+    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_FAN_UUID, 'uint8_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_RPM_UUID, 'uint16_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_BATTERY_UUID, 'float32_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_TEMPERATURE1_UUID, 'int16_t');
@@ -441,6 +467,22 @@ export class TargetService {
     return Uint8Array.of(bool ? 1 : 0).buffer;
   }
 
+  // TODO doc
+  readBleDataFromUuid(uuid: string): number {
+    let data: ReadAndRegisterData = this.getReadAndRegisterDataForUuid(uuid);
+    if (data != null) {
+      return data.behaviorSubject.getValue();
+    }
+    return null;
+  }
+
+  readSensorType1(): number {
+    return this.readBleDataFromUuid(LOTUSBLE_CHARACTERISTIC_SENSORTYPE1_UUID);
+  }
+
+  readSensorType2(): number {
+    return this.readBleDataFromUuid(LOTUSBLE_CHARACTERISTIC_SENSORTYPE2_UUID);
+  }
 
   /**
    * read data from ble, calls the given function with the result, displays toast on errors

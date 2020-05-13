@@ -12,6 +12,7 @@ import { TargetService } from '../target.service';
 export class HomePage {
 
   private _devices: BleDevice[] = [];
+  private _hasLoaded: boolean = false;
 
   constructor(
     public navCtrl: NavController,
@@ -20,6 +21,8 @@ export class HomePage {
     private targetService: TargetService
   ) {}
   
+  // TODO doc everywhere
+
   ionViewDidEnter() { 
   }
 
@@ -28,11 +31,14 @@ export class HomePage {
 
     this.devices = [];
     this.targetService.loadOrScan((bleDevice: BleDevice) => {
+      // load callback
+      this.hasLoaded = true;
       this.targetService.connect(bleDevice, () => {
         console.log('connected callback firing');
         this.navCtrl.navigateRoot(['/thermometer']);
       });
     }, (bleDevice: BleDevice) => {
+      // scan callback
       console.log('callback result new device', bleDevice);
       this.ngZone.run(() => {
         this.devices.push(bleDevice);
@@ -49,46 +55,7 @@ export class HomePage {
     });
   }
 
-  // async scan() {
-  //   let toast = await this.toastCtrl.create({
-  //     message: 'Scanning for devices...',
-  //     duration: 1000
-  //   });
-  //   toast.present();
-
-  //   this.devices = [];
-
-  //   // scan for devices containing our service uuid
-  //   this.ble.scan([LOTUSBLE_SERVICE_UUID], 3).subscribe(
-  //     device => this.onDeviceDiscovered(device), 
-  //     error => this.scanError(error)
-  //   );
-    
-  // }
-
-  // onDeviceDiscovered(device: BleDevice) {
-  //   console.log('Discovered device', device);
-  //   this.ngZone.run(() => {
-  //     this.devices.push(device);
-  //   });
-  // }
-
-  // async scanError(error: string) {
-  //   let toast = await this.toastCtrl.create({
-  //     message: 'Error scanning for LotusBLE devices.',
-  //     duration: 3000
-  //   });
-  //   toast.present();
-  // }
-
   deviceSelected(bleDevice: BleDevice) {
-    // console.log('selected', device);
-    // let navigationExtras: NavigationExtras = {
-    //   state: {
-    //     device: device
-    //   }
-    // };
-    //this.navCtrl.navigateRoot(['/thermometer'], navigationExtras);
     this.targetService.connect(bleDevice, () => {
       console.log('connected callback firing');
       this.navCtrl.navigateRoot(['/thermometer']);
@@ -101,5 +68,10 @@ export class HomePage {
   public set devices(value: BleDevice[]) {
     this._devices = value;
   }
-
+  public get hasLoaded(): boolean {
+    return this._hasLoaded;
+  }
+  public set hasLoaded(value: boolean) {
+    this._hasLoaded = value;
+  }
 }

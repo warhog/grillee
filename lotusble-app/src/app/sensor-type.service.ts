@@ -35,7 +35,7 @@ export class SensorTypeService {
     return this.sensorTypes[sensorTypeIndex];
   }
 
-  getSensorTypeModelBySensorType(sensorType: SensorType) {
+  getSensorTypeModelBySensorType(sensorType: SensorType): SensorTypeModel {
     let res = this.sensorTypes.filter((entry) => {
       return entry.type == sensorType;
     });
@@ -43,6 +43,10 @@ export class SensorTypeService {
       return res[0];
     }
     return null;
+  }
+
+  getSensorTypeIdBySensorTypeModel(sensorTypeModel: SensorTypeModel): number {
+    return sensorTypeModel.type;
   }
 
 }

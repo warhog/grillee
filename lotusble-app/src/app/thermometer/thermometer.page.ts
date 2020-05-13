@@ -61,9 +61,6 @@ export class ThermometerPage implements OnInit {
     private alarmService: AlarmService,
     private localNotifications: LocalNotifications,
     private audioService: AudioService,
-    private navCtrl: NavController,
-    private route: ActivatedRoute,
-    private router: Router,
     private sensorTypeService: SensorTypeService,
     private targetService: TargetService,
     private utilService: UtilService,
@@ -74,18 +71,7 @@ export class ThermometerPage implements OnInit {
 
 
   ngOnInit() {
-    // this.route.queryParams.subscribe(params => {
-    //   if (this.router.getCurrentNavigation().extras.state) {
-    //     this.targetService.connect(this.router.getCurrentNavigation().extras.state.device, () => {
-    //       this.doSubscriptions();
-    //     });
-    //   }
-    // });
-
-
     // // TODO reset alarm on probe temperature setpoint changes
-
-
   }
 
   // TODO doc
