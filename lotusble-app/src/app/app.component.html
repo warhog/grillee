@@ -4,7 +4,7 @@
       <ion-content>
         <ion-list id="head-list">
           <ion-list-header>LotusBLE</ion-list-header>
-          <ion-note>GRILL THERMOMETER</ion-note>
+          <ion-note>Grill Thermometer</ion-note>
 
           <ion-menu-toggle auto-hide="false" *ngFor="let p of appPages; let i = index">
             <ion-item (click)="selectedIndex = i" routerDirection="root" [routerLink]="[p.url]" lines="none" detail="false" [class.selected]="selectedIndex == i">

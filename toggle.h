@@ -1,12 +1,11 @@
 #pragma once
 
+#include <functional>
+
 class Toggle {
     public:
         Toggle() : _toggle(false) {}
-        
-        Toggle(bool startWith) {
-            _toggle = startWith;
-        }
+        Toggle(bool startWith) : _toggle(startWith) {}
         
         bool operator()() {
             _toggle = !_toggle;

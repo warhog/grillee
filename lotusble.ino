@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <MedianFilterLib.h>
+
 #include "timeout.h"
 #include "toggle.h"
 #include "edgedetector.h"
@@ -8,6 +10,9 @@
 #include "adc.h"
 #include "sensortype.h"
 #include "probe.h"
+#include "fan.h"
+#include "storage.h"
+#include "buzzer.h"
 
 #define DEBUG
 
@@ -17,102 +22,52 @@ const gpio_num_t PIN_ADC_BATTERY = GPIO_NUM_35;
 const gpio_num_t PIN_ADC_MEAT_PROBE1 = GPIO_NUM_32;
 const gpio_num_t PIN_ADC_MEAT_PROBE2 = GPIO_NUM_33;
 const gpio_num_t PIN_RPM = GPIO_NUM_27;
-const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_14;
+const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_16;
 const gpio_num_t PIN_DEFAULT_VOLTAGE_OUTPUT = GPIO_NUM_26;
-
-// minimum rpm, below alarm detection is triggered
-const unsigned int MIN_RPM = 300;
-// time to wait in seconds before triggering an alarm if rpm is below MIN_RPM
-const unsigned int ALARM_WAIT_TIME = 5;
-// update rpm reading every
-const unsigned int UPDATE_RPM_EVERY_X_MILLIS = 500;
-// how many pulses per full rotation the fan is generating on the rpm pin
-const uint8_t PULSES_PER_ROTATION = 2;
-
-const uint8_t NR_OF_TEMPERATURE_PROBES = 2;
-
-// internal variables
-const unsigned int ALARM_WAIT_TIME_CYCLES = ALARM_WAIT_TIME * 1000 / UPDATE_RPM_EVERY_X_MILLIS;
-const unsigned int RPM_CALCULATION_TIMEFRAME = 60000 / UPDATE_RPM_EVERY_X_MILLIS;
-uint16_t rpm{5000};
-uint16_t rpmSmoothed{5000};
-// ticks rpm is to calculate the rpm and used in the ISR
-volatile unsigned int ticksRpm{0};
 
 // weather controlled by bluetooth or poti
 bool controlByBle = false;
 
-// fan speed percentage
-uint16_t fanPercent{100};
-
-// analog value from poti (smoothed)
-float potiAnalogSmooth{0};
-
 // alarm
-unsigned int rpmAlarmCounter{0};
-bool alarmGeneral{false};
+bool alarmAcked{false};
 bool alarmFan{false};
 bool alarmBattery{false};
 bool alarmProbe1{false};
 bool alarmProbe2{false};
 
-TimeoutMs timeoutRpm(UPDATE_RPM_EVERY_X_MILLIS);
-#ifdef DEBUG
-TimeoutS timeoutRpmSerial(1);
-#endif
-TimeoutMs timeoutReadPoti(25);
-TimeoutS timeoutAlarm(1);
-Toggle toggleAlarm;
-
 EdgeDetector<bool> alarmChanged(false);
-EdgeDetector<bool> alarmBatteryChanged(false);
 EdgeDetector<bool> alarmFanChanged(false);
+EdgeDetector<bool> alarmBatteryChanged(false);
 EdgeDetector<bool> alarmProbe1Changed(false);
 EdgeDetector<bool> alarmProbe2Changed(false);
 
-EdgeDetector<unsigned int> fanPercentChanged(0, 5);
-EdgeDetector<float> batteryChanged(0, 0.1);
-EdgeDetector<unsigned int> rpmChanged(0, 100);
+TimeoutMs timeoutReadPoti(25);
 
-EdgeDetector<unsigned int> probe1Changed(0, 1);
-EdgeDetector<unsigned int> probe2Changed(0, 1);
+EdgeDetector<float> batteryChanged(0, 0.1);
+EdgeDetector<uint16_t> rpmChanged(0, 100);
+EdgeDetector<uint8_t> fanPercentChanged(0);
+
+EdgeDetector<int16_t> probe1Changed(0, 1);
+EdgeDetector<int16_t> probe2Changed(0, 1);
 uint16_t setpoint1 = 80;
 uint16_t setpoint2 = 80;
 
 BleServer bleServer;
+util::Storage storage;
+util::Buzzer buzzer(PIN_ALARM_BUZZER);
+util::Battery battery(PIN_ADC_BATTERY);
 
-Battery battery(PIN_ADC_BATTERY);
-Probe probe1(PIN_ADC_MEAT_PROBE1, SensorType::PRO05);
-Probe probe2(PIN_ADC_MEAT_PROBE2, SensorType::PRO05);
+measurement::Probe probe1(PIN_ADC_MEAT_PROBE1, SensorType::UNKNOWN);
+measurement::Probe probe2(PIN_ADC_MEAT_PROBE2, SensorType::UNKNOWN);
 
-// ISR function for the rpm reading
+MedianFilter<uint16_t> medianFilterPoti(10);
+
+void rpmIsr();
+ventilation::Fan fan(PIN_FAN, PIN_RPM, &rpmIsr);
 void IRAM_ATTR rpmIsr() {
-    ticksRpm++;
+    ventilation::Fan::tickRpm(&fan);
 }
 
-void initFan() {
-    // setup pin for pwm fan
-    pinMode(PIN_FAN, OUTPUT);
-    digitalWrite(PIN_FAN, LOW);
-
-    // set pwm generator for fan using ledcontroller
-    // set to 25khz and 12bit resolution
-    ledcSetup(0, 25000, 12);
-    ledcAttachPin(PIN_FAN, 0);
-    // set to full speed at initialization
-    ledcWrite(0, 4095);
-
-    // setup pin for rpm input
-    pinMode(PIN_RPM, INPUT_PULLUP);
-    // attach pin change interrupt to rpm pin on falling edges
-    attachInterrupt(PIN_RPM, rpmIsr, FALLING);
-
-}
-
-void initTemperature() {
-    pinMode(PIN_ADC_MEAT_PROBE1, INPUT);
-    pinMode(PIN_ADC_MEAT_PROBE2, INPUT);
-}
 
 void controlByBleCallback(bool control) {
 #ifdef DEBUG
@@ -121,11 +76,11 @@ void controlByBleCallback(bool control) {
     controlByBle = control;
 }
 
-void fanWriteCallback(uint16_t value) {
+void fanWriteCallback(uint8_t value) {
 #ifdef DEBUG
     Serial.printf("fan write callback: %d\n", value);
 #endif
-    fanPercent = value;
+    fan.setFanPercent(value);
 }
 
 void setpointWriteCallback(uint16_t value, uint8_t number) {
@@ -134,9 +89,12 @@ void setpointWriteCallback(uint16_t value, uint8_t number) {
 #endif
     if (number == 1) {
         setpoint1 = value;
+        storage.setSetpoint1(setpoint1);
     } else if (number == 2) {
         setpoint2 = value;
+        storage.setSetpoint2(setpoint2);
     }
+    storage.store();
 }
 
 void sensorTypeWriteCallback(uint8_t sensorType, uint8_t number) {
@@ -145,15 +103,20 @@ void sensorTypeWriteCallback(uint8_t sensorType, uint8_t number) {
 #endif
     if (number == 1) {
         probe1.setSensorType(SensorData::getSensorTypeByIndex(sensorType));
+        storage.setSensorType1(SensorData::getSensorTypeByIndex(sensorType));
     } else if (number == 2) {
         probe2.setSensorType(SensorData::getSensorTypeByIndex(sensorType));
+        storage.setSensorType2(SensorData::getSensorTypeByIndex(sensorType));
     }
+    storage.store();
 }
 
 void alarmAckWriteCallback() {
 #ifdef DEBUG
     Serial.println("alarm ack callback");
 #endif
+    alarmAcked = true;
+    buzzer.disable();
 }
 
 void setup() {
@@ -162,6 +125,22 @@ void setup() {
     Serial.println("startup");
 #endif
 
+#ifdef DEBUG
+	Serial.println(F("reading config from eeprom"));
+#endif
+	EEPROM.begin(512);
+#ifdef DEBUG
+    if (storage.isValid()) {
+        Serial.println("storage is valid");
+    }
+#endif
+    storage.load();
+    setpoint1 = storage.getSetpoint1();
+    setpoint2 = storage.getSetpoint2();
+    probe1.setSensorType(storage.getSensorType1());
+    probe2.setSensorType(storage.getSensorType2());
+    // TODO defaultVref
+
     // set analog pin for reading the poti
     analogSetPinAttenuation(PIN_ADC_POTI, ADC_11db);
 
@@ -169,9 +148,6 @@ void setup() {
     // for (;;) {
     //     yield();
     // }
-    
-    initFan();
-    initTemperature();
 
     bleServer.begin();
     bleServer.setControlByBleCallback(&controlByBleCallback);
@@ -183,108 +159,77 @@ void setup() {
 
     bleServer.setAlarm(false);
     bleServer.setBattery(6.0);
-    bleServer.setFan(fanPercent);
-    bleServer.setRpm(rpm);
+    bleServer.setFan(0);
+    bleServer.setRpm(0);
     bleServer.setSetpoint1(setpoint1);
     bleServer.setSetpoint2(setpoint2);
+    bleServer.setSensorType1(probe1.getSensorType());
+    bleServer.setSensorType2(probe2.getSensorType());
     bleServer.setTemperature1(probe1.getProbeTemperature());
     bleServer.setTemperature2(probe2.getProbeTemperature());
 
-    
-
-}
-
-void rpmLoop() {
-    if (timeoutRpm()) {
-        timeoutRpm.reset();
-        rpm = ((ticksRpm * RPM_CALCULATION_TIMEFRAME) / PULSES_PER_ROTATION);
-        ticksRpm = 0;
-        rpmSmoothed = static_cast<unsigned int>(static_cast<double>(rpm) * 0.25 + static_cast<double>(rpmSmoothed) * 0.75);
-
-        if (!alarmFan && rpmSmoothed < MIN_RPM) {
-            // no alarm yet and rpm is too low
-            rpmAlarmCounter++;
-        } else if (rpmAlarmCounter > 0 && rpmSmoothed >= MIN_RPM) {
-            // alarm counter started triggering and rpm is fine again
-            rpmAlarmCounter--;
-        }
-        if (!alarmFan && rpmAlarmCounter >= ALARM_WAIT_TIME_CYCLES) {
-            // no alarm and counter above wait cycles -> trigger alarm
-            alarmFan = true;
-        } else if (alarmFan && rpmAlarmCounter == 0) {
-            // alarm and counter back to zero -> disable alarm
-            alarmFan = false;
-        }
-    }
-
-    if (rpmChanged(rpm)) {
-        bleServer.setRpm(rpm);
-    }
-
-#ifdef DEBUG
-    if (timeoutRpmSerial()) {
-        Serial.print("rpm: ");
-        Serial.print(rpm);
-        Serial.print(" - ");
-        Serial.println(rpmSmoothed);
-        timeoutRpmSerial.reset();
-    }
-#endif
-}
-
-void fanLoop() {
-    if (!controlByBle && timeoutReadPoti()) {
-        timeoutReadPoti.reset();
-        unsigned int potiAnalogValue = analogRead(PIN_ADC_POTI);
-        potiAnalogSmooth = static_cast<float>(potiAnalogValue) * 0.50 + static_cast<float>(potiAnalogSmooth) * 0.50;
-        unsigned int fanPercentSmoothed = static_cast<unsigned int>((potiAnalogSmooth / 4096.0) * 100.0);
-        if (fanPercentSmoothed != fanPercent) {
-            fanPercent = static_cast<unsigned int>(fanPercentSmoothed);
-        }
-    }
-
-    if (fanPercentChanged(fanPercent)) {
-        unsigned int fanSpeedRaw = static_cast<unsigned int>(static_cast<float>(fanPercent) * 40.96);
-        // minimum fanspeed is 10%
-        fanSpeedRaw = constrain(fanSpeedRaw, 409, 4096);
-#ifdef DEBUG
-        Serial.printf("update fan, %d -> %d (raw: %d)\n", fanPercentChanged.getOldValue(), fanPercent, fanSpeedRaw);
-#endif
-        ledcWrite(0, fanSpeedRaw);
-        bleServer.setFan(fanPercent);
-    }
 }
 
 void loop() {
 
-    alarmGeneral = alarmFan || alarmBattery;
-    if (alarmChanged(alarmGeneral, true) || alarmBatteryChanged(alarmBattery, true) || alarmFanChanged(alarmFan, true)) {
+    bool alarm = false;
+    // if (alarmBatteryChanged(alarmBattery), true) { alarm = true; }
+    if (alarmFanChanged(alarmFan)) { alarm = true; }
+    // if (alarmProbe1Changed(alarmProbe1), true) { alarm = true; }
+    // if (alarmProbe2Changed(alarmProbe2), true) { alarm = true; }
+        static int i = 0;
+    if (alarm && i == 0) {
+        i = 1;
+
+        // new alarm triggered
 #ifdef DEBUG
         Serial.println("sending alarm");
 #endif
+        alarmAcked = false;
         bleServer.setAlarm(true);
+        buzzer.enable();
     }
-    if (alarmChanged(alarmGeneral, false)) {
-        bleServer.setAlarm(false);
-    }
-    
-    if (alarmGeneral && timeoutAlarm()) {
-        timeoutAlarm.reset();
-        if (toggleAlarm()) {
-            Serial.println("ALARM");
+
+    bool alarms = alarmBattery | alarmFan | alarmProbe1 | alarmProbe2;
+    alarmChanged.lambda(alarms, [](bool newValue, bool oldValue) {
+        if (!newValue) {
+            // changed alarm back to normal
+#ifdef DEBUG
+            Serial.println("sending alarm disable");
+#endif
+            bleServer.setAlarm(false);
+            buzzer.disable();
         }
-    }
+    });
 
-    rpmLoop();
-    fanLoop();
-
-    if (probe1Changed(probe1.update())) {
+     if (probe1Changed(probe1.update())) {
         bleServer.setTemperature1(probe1.getProbeTemperature());
     }
 
     if (probe2Changed(probe2.update())) {
         bleServer.setTemperature2(probe2.getProbeTemperature());
     }
+
+    if (!controlByBle && timeoutReadPoti()) {
+        timeoutReadPoti.reset();
+        uint16_t potiAnalogValue = analogRead(PIN_ADC_POTI);
+        uint16_t potiAnalogFiltered = medianFilterPoti.AddValue(potiAnalogValue);
+        uint16_t fanPercentFiltered = static_cast<uint16_t>((static_cast<float>(potiAnalogFiltered) / 4096.0) * 100.0);
+        if (fanPercentFiltered != fan.getFanPercent()) {
+            fan.setFanPercent(fanPercentFiltered);
+        }
+    }
+
+    fan.update();
+    uint16_t fanSpeedRpm = fan.getFanSpeedRpm();
+    if (rpmChanged(fanSpeedRpm)) {
+        bleServer.setRpm(fanSpeedRpm);
+    }
+    uint8_t fanPercent = fan.getFanPercent();
+    if (fanPercentChanged(fanPercent)) {
+        bleServer.setFan(fanPercent);
+    }
+    alarmFan = fan.getFanAlarm();
 
     battery.update();
     float batteryVoltage = battery.getBatteryVoltage();
@@ -294,5 +239,7 @@ void loop() {
         }
         bleServer.setBattery(batteryVoltage);
     }
+
+    buzzer.update();
 
 }

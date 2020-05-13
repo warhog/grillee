@@ -1,11 +1,8 @@
-import { BLE } from '@ionic-native/ble/ngx';
 import { Component, NgZone } from '@angular/core';
-import { ToastController, Platform } from '@ionic/angular';
 import { NavController } from '@ionic/angular';
-import { NavigationExtras } from '@angular/router';
 import { BleDevice } from '../models/bledevice';
-
-const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
+import { UtilService } from '../util.service';
+import { TargetService } from '../target.service';
 
 @Component({
   selector: 'app-home',
@@ -15,67 +12,87 @@ const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 export class HomePage {
 
   private _devices: BleDevice[] = [];
-  private _statusMessage: string = "";
 
   constructor(
     public navCtrl: NavController,
-    private toastCtrl: ToastController,
-    private ble: BLE,
     private ngZone: NgZone,
-    private platform: Platform
+    private utilService: UtilService,
+    private targetService: TargetService
   ) {}
   
-  ionViewDidEnter() {
-    // this.scan();
-    this.deviceSelected({id:'',name:'',rssi:0});
+  ionViewDidEnter() { 
   }
 
   ionViewWillEnter() {
-    this.platform.backButton.subscribeWithPriority(1, () => {
-      navigator['app'].exitApp();
-    });
-  }
-
-  async scan() {
-    let toast = await this.toastCtrl.create({
-      message: 'Scanning for devices...',
-      duration: 1000
-    });
-    toast.present();
+    this.utilService.backButton();
 
     this.devices = [];
+    this.targetService.loadOrScan((bleDevice: BleDevice) => {
+      this.targetService.connect(bleDevice, () => {
+        console.log('connected callback firing');
+        this.navCtrl.navigateRoot(['/thermometer']);
+      });
+    }, (bleDevice: BleDevice) => {
+      console.log('callback result new device', bleDevice);
+      this.ngZone.run(() => {
+        this.devices.push(bleDevice);
+      });
+    });
+  }
 
-    // scan for devices containing our service uuid
-    this.ble.scan([LOTUSBLE_SERVICE_UUID], 3).subscribe(
-      device => this.onDeviceDiscovered(device), 
-      error => this.scanError(error)
-    );
+  scan() {
+    this.targetService.scan((bleDevice: BleDevice) => {
+      console.log('callback result new device', bleDevice);
+      this.ngZone.run(() => {
+        this.devices.push(bleDevice);
+      });
+    });
+  }
+
+  // async scan() {
+  //   let toast = await this.toastCtrl.create({
+  //     message: 'Scanning for devices...',
+  //     duration: 1000
+  //   });
+  //   toast.present();
+
+  //   this.devices = [];
+
+  //   // scan for devices containing our service uuid
+  //   this.ble.scan([LOTUSBLE_SERVICE_UUID], 3).subscribe(
+  //     device => this.onDeviceDiscovered(device), 
+  //     error => this.scanError(error)
+  //   );
     
-  }
+  // }
 
-  onDeviceDiscovered(device: BleDevice) {
-    console.log('Discovered device', device);
-    this.ngZone.run(() => {
-      this.devices.push(device);
+  // onDeviceDiscovered(device: BleDevice) {
+  //   console.log('Discovered device', device);
+  //   this.ngZone.run(() => {
+  //     this.devices.push(device);
+  //   });
+  // }
+
+  // async scanError(error: string) {
+  //   let toast = await this.toastCtrl.create({
+  //     message: 'Error scanning for LotusBLE devices.',
+  //     duration: 3000
+  //   });
+  //   toast.present();
+  // }
+
+  deviceSelected(bleDevice: BleDevice) {
+    // console.log('selected', device);
+    // let navigationExtras: NavigationExtras = {
+    //   state: {
+    //     device: device
+    //   }
+    // };
+    //this.navCtrl.navigateRoot(['/thermometer'], navigationExtras);
+    this.targetService.connect(bleDevice, () => {
+      console.log('connected callback firing');
+      this.navCtrl.navigateRoot(['/thermometer']);
     });
-  }
-
-  async scanError(error: string) {
-    let toast = await this.toastCtrl.create({
-      message: 'Error scanning for LotusBLE devices.',
-      duration: 3000
-    });
-    toast.present();
-  }
-
-  deviceSelected(device: BleDevice) {
-    console.log('selected', device);
-    let navigationExtras: NavigationExtras = {
-      state: {
-        device: device
-      }
-    };
-    this.navCtrl.navigateRoot(['/thermometer'], navigationExtras);
   }
 
   public get devices(): BleDevice[] {

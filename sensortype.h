@@ -1,27 +1,30 @@
 #pragma once
 
-const unsigned int NR_OF_SENSORTYPES = 14;
+#include <type_traits>
+
+#define DEBUG
+const unsigned int NR_OF_SENSORTYPES = 15;
 
 // values and type names thankfully taken from wlanthermo project
 // https://github.com/WLANThermo-nano/WLANThermo_ESP32_Software/blob/master/src/temperature/TemperatureBase.cpp#L294
 // https://github.com/WLANThermo-nano/WLANThermo_ESP32_Software/blob/master/src/temperature/TemperatureSensors.h
 
 enum class SensorType {
-    UNKNOWN = -1,
-    MAVERICK = 0,
-    FANTAST_NEW = 1,
-    FANTAST = 2,
-    IGRILL2 = 3,
-    ET73 = 4,
-    PERFEKTION = 5,
-    GENERIC_50K = 6,
-    INKBIRD = 7,
-    NTC100K6A1B = 8,
-    WEBER6743 = 9,
-    SANTOS = 10,
-    NTC5K3A1B = 11,
-    THERMOWORKS = 12,
-    PRO05 = 13
+    UNKNOWN = 0,
+    MAVERICK = 1,
+    FANTAST_NEW = 2,
+    FANTAST = 3,
+    IGRILL2 = 4,
+    ET73 = 5,
+    PERFEKTION = 6,
+    GENERIC_50K = 7,
+    INKBIRD = 8,
+    NTC100K6A1B = 9,
+    WEBER6743 = 10,
+    SANTOS = 11,
+    NTC5K3A1B = 12,
+    THERMOWORKS = 13,
+    PRO05 = 14
 };
 
 struct sensordata_t {
@@ -56,6 +59,10 @@ class SensorData {
             }
         }
 
+        static uint8_t getSensorIndexByType(SensorType type) {
+            return static_cast<uint8_t>(type);
+        }
+
         static sensordata_t getSensorData(SensorType sensorType) {
             switch (sensorType) {
                 case SensorType::MAVERICK:
@@ -85,7 +92,8 @@ class SensorData {
                 case SensorType::THERMOWORKS:
                     return { .rn = 97.31, .a = 3.3556417e-03, .b = 2.5191450e-04, .c = 2.3606960e-06 };
                 case SensorType::PRO05:
-                    return { .rn = 50.0, .a = 3.3648668e-03, .b = 2.6369913e-04, .c = 3.9587022e-06 };
+                    //return { .rn = 50.0, .a = 3.3648668e-03, .b = 2.6369913e-04, .c = 3.9587022e-06 };
+                    return { .rn = 50.0, .a = 3.3573183e-03, .b = 2.5336573e-04, .c = 9.6659979e-07 };
                 default:
 #ifdef DEBUG
                     Serial.printf("unknown sensortype: %d\n", sensorType);

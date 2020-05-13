@@ -10,7 +10,7 @@ export class SensorTypeService {
   private sensorTypes: Array<SensorTypeModel> = [
     { name: 'Unknown', type: SensorType.UNKNOWN },
     { name: 'Maverick', type: SensorType.MAVERICK },
-    { name: 'Fantat NEW', type: SensorType.FANTAST_NEW },
+    { name: 'Fantast NEW', type: SensorType.FANTAST_NEW },
     { name: 'Fantast', type: SensorType.FANTAST },
     { name: 'iGrill2', type: SensorType.IGRILL2 },
     { name: 'ET-73', type: SensorType.ET73 },

@@ -42,7 +42,7 @@ export class MeatTemperatureService {
       return entry.id == meatTypeTemperature.meatTypeId;
     });
     if (meatTypes.length > 0) {
-      if (meatTypeTemperature.name == 'custom') {
+      if (meatTypeTemperature.meatTypeId == 'custom') {
         return meatTypes[0].name;
       } else {
         return meatTypes[0].name + ' - ' + meatTypeTemperature.name;

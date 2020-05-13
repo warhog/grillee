@@ -1,14 +1,11 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
     <ion-title>
       LotusBLE
     </ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="disconnect()">
-        <ion-icon slot="end" name="close-circle"></ion-icon>
-        Disconnect
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -16,13 +13,13 @@
   <ion-text class="ion-text-center">
     <h3>Probe 1</h3>
     <p>
-      <ion-text color="danger" class="temperature">{{ bleData.temperature1 | probe }} </ion-text>
-      <ion-text [hidden]="bleData.temperature1 <= -100" class="small" color="success">{{ bleData.setpoint1 }} °C</ion-text>
+      <ion-text color="danger" class="temperature">{{ temperatureProbe1 | probe }} </ion-text>
+      <ion-text [hidden]="temperatureProbe1 <= -100" class="small" color="success">{{ setpoint1 }} °C</ion-text>
     </p>
   </ion-text>
-  <ion-text [hidden]="bleData.temperature1 <= -100" color="medium" class="ion-text-center">
+  <ion-text [hidden]="temperatureProbe1 <= -100" color="medium" class="ion-text-center">
     <p>
-      {{getMeatTypeString(1)}} {{getSensorTypeString(1)}}<br />
+      {{getMeatTypeString(1)}} ({{getSensorTypeString(1)}})<br />
       <ion-button color="secondary" size="small" (click)="onSetSetpoint1()">
         <ion-icon slot="start" name="thermometer"></ion-icon>
         Change
@@ -35,13 +32,13 @@
   <ion-text class="ion-text-center">
     <h3>Probe 2</h3>
     <p>
-      <ion-text color="danger" class="temperature">{{ bleData.temperature2 | probe }} </ion-text>
-      <ion-text [hidden]="bleData.temperature2 <= -100" class="small" color="success">{{ bleData.setpoint2 }} °C</ion-text>
+      <ion-text color="danger" class="temperature">{{ temperatureProbe2 | probe }} </ion-text>
+      <ion-text [hidden]="temperatureProbe2 <= -100" class="small" color="success">{{ setpoint2 }} °C</ion-text>
     </p>
   </ion-text>
-  <ion-text [hidden]="bleData.temperature2 <= -100" color="medium" class="ion-text-center">
+  <ion-text [hidden]="temperatureProbe2 <= -100" color="medium" class="ion-text-center">
     <p>
-      {{getMeatTypeString(2)}}<br />
+      {{getMeatTypeString(2)}} ({{getSensorTypeString(2)}})<br />
       <ion-button color="secondary" size="small" (click)="onSetSetpoint2()">
         <ion-icon slot="start" name="thermometer"></ion-icon>
         Change
@@ -50,7 +47,7 @@
   </ion-text>
 
   <ion-item lines="none">
-    <ion-range min="10" max="100" step="5" snaps="true" debounce="250" [value]="bleData.fan" (ionChange)="onChangeFanSpeed($event.target.value)">
+    <ion-range min="10" max="100" step="5" snaps="true" debounce="250" [value]="fanSpeed" (ionChange)="onChangeFanSpeed($event.target.value)">
       <ion-icon slot="start" name="remove"></ion-icon>
       <ion-icon slot="end" name="add"></ion-icon>
     </ion-range>
@@ -59,11 +56,9 @@
   <ion-text class="ion-text-center" color="medium">
     <p>
       <ion-icon name="options-outline"></ion-icon>
-      <span style="vertical-align: top;"> {{ bleData.fan }} % ({{ bleData.rpm }} rpm) | </span>
-      <ion-icon [hidden]="batteryIcon != 0.0" name="battery-dead-outline"></ion-icon>
-      <ion-icon [hidden]="batteryIcon != 0.5" name="battery-half-outline"></ion-icon>
-      <ion-icon [hidden]="batteryIcon != 1.0" name="battery-full-outline"></ion-icon>
-      <span style="vertical-align: top;"> {{ bleData.battery | number:'1.1-1' }} V | </span>
+      <span style="vertical-align: top;"> {{ fanSpeed }} % ({{ fanRpm }} rpm) | </span>
+      <ion-icon [name]="getBatteryIcon()"></ion-icon>
+      <span style="vertical-align: top;"> {{ battery | number:'1.1-1' }} V | </span>
       <ion-icon name="cellular-outline"></ion-icon>
       <span style="vertical-align: top;"> {{ rssi }} db</span>
     </p>

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { SensorTypeModel } from '../models/sensortype';
 import { SensorTypeService } from '../sensor-type.service';
+import { UtilService } from '../util.service';
 
 @Component({
   selector: 'app-settings',
@@ -13,7 +14,8 @@ export class SettingsPage implements OnInit {
   private _selectedSensorType1: SensorTypeModel;
   private _selectedSensorType2: SensorTypeModel;
 
-  constructor(private sensorTypeService: SensorTypeService ) {
+  constructor(private sensorTypeService: SensorTypeService,
+    private utilService: UtilService) {
     this.sensorTypes = sensorTypeService.getSensorTypeModels();
     this.selectedSensorType1 = sensorTypeService.getSensorTypeModelByIndex(0);
     this.selectedSensorType2 = sensorTypeService.getSensorTypeModelByIndex(0);
@@ -22,8 +24,13 @@ export class SettingsPage implements OnInit {
   ngOnInit() {
   }
 
+  ionViewWillEnter() {
+    this.utilService.backButton();
+  }
+
   onChangeSensorType(id: number) {
-    
+    console.log('onChangeSensorType', id, this.selectedSensorType1);
+    console.log('onChangeSensorType', id, this.selectedSensorType2);
   }
 
   compareSensorTypeModel(o1: SensorTypeModel, o2: SensorTypeModel): boolean {

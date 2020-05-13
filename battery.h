@@ -4,6 +4,8 @@
 #include "adc.h"
 #include "timeout.h"
 
+namespace util {
+
 // voltage divider: 10000:2200 ohm
 const float FACTOR_BATTERY_VOLTAGE = 5.545454545;
 
@@ -31,3 +33,5 @@ class Battery {
         float _batteryVoltage;
 
 };
+
+}

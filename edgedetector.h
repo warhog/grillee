@@ -9,47 +9,66 @@ template <class T> class EdgeDetector {
         /**
          * @brief Tests if given value has changed since last call
          *
-         * Tests if newValue has changed since the last call to this function.
+         * Tests if currentValue has changed since the last call to this function.
          * 
-         * @param [in] newValue the new value to do an edge detection for
-         * @return Boolean true if newValue has changed
+         * @param [in] currentValue the new value to do an edge detection for
+         * @return Boolean true if currentValue has changed
          */
-        bool operator()(T newValue) {
+        bool operator()(T currentValue) {
             _oldOldValue = _oldValue;
             if (_hysteresis) {
-                if (abs(newValue - _oldValue) > _hysteresis) {
-                    _oldValue = newValue;
+                if (abs(currentValue - _oldValue) > _hysteresis) {
+                    _oldValue = currentValue;
                     return true;
                 }
-            } else if (newValue != _oldValue) {
-                _oldValue = newValue;
+            } else if (currentValue != _oldValue) {
+                _oldValue = currentValue;
                 return true;
             }
             return false;
         }
 
-        T abs(const T value) {
-            T newValue = value;
-            if (newValue < static_cast<T>(0)) {
-                newValue *= static_cast<T>(-1);
+        /**
+         * @brief Tests if given value has changed since last call and calls the given function
+         * if value has changed
+         *
+         * Tests if currentValue has changed since the last call to this function. If the value has changed
+         * the given function lambda is called with the old and new value as argument.
+         * 
+         * @param [in] currentValue the new value to do an edge detection for
+         * @param [in] lambda the function to execute on value changes
+         * @return Boolean true if currentValue has changed
+         */
+        bool lambda(T currentValue, std::function<void(T, T)> lambda) {
+            _oldOldValue = _oldValue;
+            if (_hysteresis) {
+                if (abs(currentValue - _oldValue) > _hysteresis) {
+                    _oldValue = currentValue;
+                    lambda(currentValue, _oldOldValue);
+                    return true;
+                }
+            } else if (currentValue != _oldValue) {
+                _oldValue = currentValue;
+                lambda(currentValue, _oldOldValue);
+                return true;
             }
-            return newValue;
+            return false;
         }
 
         /**
          * @brief Tests if given value has changed to a given value
          *
-         * Tests if newValue has changed to toValue and return true if condition is met.
+         * Tests if currentValue has changed to toValue and return true if condition is met.
          * Attention: this ignores hysteresis!
          * 
-         * @param [in] newValue the new value to do an edge detection for
-         * @param [in] toValue the value newValue has to change to to trigger
-         * @return Boolean true if newValue has changed to toValue
+         * @param [in] currentValue the new value to do an edge detection for
+         * @param [in] toValue the value currentValue has to change to to trigger
+         * @return Boolean true if currentValue has changed to toValue
          */
-        bool operator()(T newValue, T toValue) {
+        bool operator()(T currentValue, T toValue) {
             _oldOldValue = _oldValue;
-            if (newValue != _oldValue && newValue == toValue) {
-                _oldValue = newValue;
+            if (currentValue != _oldValue && currentValue == toValue) {
+                _oldValue = currentValue;
                 return true;
             }
             return false;
@@ -70,4 +89,16 @@ template <class T> class EdgeDetector {
         T _oldValue;
         T _oldOldValue;
         T _hysteresis;
+
+        /**
+         * template based abs function
+         **/
+        T abs(const T value) {
+            T currentValue = value;
+            if (currentValue < static_cast<T>(0)) {
+                currentValue *= static_cast<T>(-1);
+            }
+            return currentValue;
+        }
+
 };

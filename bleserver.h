@@ -7,7 +7,9 @@
 #include <BLEServer.h>
 #include <BLE2902.h>
 
-#define NR_OF_CHARACTERISTICS 9
+#include "sensortype.h"
+
+#define NR_OF_CHARACTERISTICS 11
 #define SERVICE_UUID "32b33b05-6ac4-4137-9ca7-6dc3dbac4e41"
 #define CHARACTERISTIC_ALARM_UUID "06817906-f5db-4d66-86e4-776e74074cd6"
 #define CHARACTERISTIC_ALARMACK_UUID "16817906-f5db-4d66-86e4-776e74074cd6"
@@ -23,7 +25,8 @@
 
 class BleServer {
 public:
-    BleServer() : _fanWriteCallback(nullptr), _controlByBleCallback(nullptr) {}
+    BleServer() : _fanCallback(nullptr), _controlByBleCallback(nullptr), _setpointCallback(nullptr),
+        _sensorTypeCallback(nullptr), _alarmAckCallback(nullptr) {}
 
     /**
      * @brief Create a %BLE Service.
@@ -48,8 +51,8 @@ public:
         _controlByBleCallback = controlByBleCallback;
     }
 
-    void setFanWriteCallback(void (*callback)(uint16_t value)) {
-        _fanWriteCallback = callback;
+    void setFanWriteCallback(void (*callback)(uint8_t value)) {
+        _fanCallback = callback;
     }
 
     void setSetpointWriteCallback(void (*callback)(uint16_t value, uint8_t nr)) {
@@ -57,7 +60,7 @@ public:
     }
 
     void setAlarmAckWriteCallback(void (*callback)()) {
-        _alarmAckWriteCallback = callback;
+        _alarmAckCallback = callback;
     }
 
     void setSensorTypeCallback(void (*callback)(uint8_t sensorType, uint8_t nr)) {
@@ -94,37 +97,37 @@ public:
     }
 
     void setAlarm(bool alarm) {
-        uint8_t temp[2];
+        uint8_t temp[1];
         temp[0] = alarm ? 1 : 0;
-        _characteristicAlarm->setValue(temp, 2);
+        _characteristicAlarm->setValue(temp, 1);
         if (_devicesConnected > 0) {
             _characteristicAlarm->notify();
         }
     }
 
     void setSetpoint1(uint16_t setpoint) {
-        _characteristicSetpoint1->setValue(setpoint);
+        _characteristicSetpoint1->setValue(std::string((char *)&setpoint, 2));
         if (_devicesConnected > 0) {
             _characteristicSetpoint1->notify();
         }
     }
 
     void setSetpoint2(uint16_t setpoint) {
-        _characteristicSetpoint2->setValue(setpoint);
+        _characteristicSetpoint2->setValue(std::string((char *)&setpoint, 2));
         if (_devicesConnected > 0) {
             _characteristicSetpoint2->notify();
         }
     }
 
     void setTemperature1(int16_t temperature) {
-        _characteristicTemperature1->setValue((uint8_t *)&temperature, 2);
+        _characteristicTemperature1->setValue(std::string((char *)&temperature, 2));
         if (_devicesConnected > 0) {
             _characteristicTemperature1->notify();
         }
     }
 
     void setTemperature2(int16_t temperature) {
-        _characteristicTemperature2->setValue((uint8_t *)&temperature, 2);
+        _characteristicTemperature2->setValue(std::string((char *)&temperature, 2));
         if (_devicesConnected > 0) {
             _characteristicTemperature2->notify();
         }
@@ -151,6 +154,22 @@ public:
         }
     }
 
+    void setSensorType1(SensorType sensorType) {
+        uint8_t sensorIndex = SensorData::getSensorIndexByType(sensorType);
+        _characteristicSensorType1->setValue((uint8_t *)&sensorIndex, 1);
+        if (_devicesConnected > 0) {
+            _characteristicSensorType1->notify();
+        }
+    }
+
+    void setSensorType2(SensorType sensorType) {
+        uint8_t sensorIndex = SensorData::getSensorIndexByType(sensorType);
+        _characteristicSensorType2->setValue((uint8_t *)&sensorIndex, 1);
+        if (_devicesConnected > 0) {
+            _characteristicSensorType2->notify();
+        }
+    }
+
     void stop() {
         _service->stop();
     }
@@ -171,9 +190,9 @@ public:
         BLECharacteristic *_characteristicSensorType2;
         uint8_t _devicesConnected;
         void (*_controlByBleCallback)(bool control);
-        void (*_fanWriteCallback)(uint16_t value);
+        void (*_fanCallback)(uint8_t value);
         void (*_setpointCallback)(uint16_t value, uint8_t number);
-        void (*_alarmAckWriteCallback)();
+        void (*_alarmAckCallback)();
         void (*_sensorTypeCallback)(uint8_t sensorType, uint8_t number);
 
         friend class MyServerCallbacks;
@@ -192,30 +211,33 @@ public:
 
                 void onWrite(BLECharacteristic *characteristic) {
                     if (characteristic == _bleServer->_characteristicFan) {
-                        if (_bleServer->_fanWriteCallback != nullptr) {
-                            Serial.println(atoi(_bleServer->_characteristicFan->getValue().c_str()));
-                            Serial.println(_bleServer->_characteristicFan->getValue().c_str());
-                            _bleServer->_fanWriteCallback(atoi(_bleServer->_characteristicFan->getValue().c_str()));
+                        if (_bleServer->_fanCallback != nullptr) {
+                            uint8_t fanSpeed = *((uint8_t *)(characteristic->getValue().data()));
+                            _bleServer->_fanCallback(fanSpeed);
                         }
                     } else if (characteristic == _bleServer->_characteristicSetpoint1) {
                         if (_bleServer->_setpointCallback != nullptr) {
-                            _bleServer->_setpointCallback(atoi(_bleServer->_characteristicSetpoint1->getValue().c_str()), 1);
+                            uint16_t setpoint = *((uint16_t *)(characteristic->getValue().data()));
+                            _bleServer->_setpointCallback(setpoint, 1);
                         }
                     } else if (characteristic == _bleServer->_characteristicSetpoint2) {
                         if (_bleServer->_setpointCallback != nullptr) {
-                            _bleServer->_setpointCallback(atoi(_bleServer->_characteristicSetpoint2->getValue().c_str()), 2);
+                            uint16_t setpoint = *((uint16_t *)(characteristic->getValue().data()));
+                            _bleServer->_setpointCallback(setpoint, 2);
                         }
                     } else if (characteristic == _bleServer->_characteristicAlarmAck) {
-                        if (_bleServer->_alarmAckWriteCallback != nullptr) {
-                            _bleServer->_alarmAckWriteCallback();
+                        if (_bleServer->_alarmAckCallback != nullptr) {
+                            _bleServer->_alarmAckCallback();
                         }
                     } else if (characteristic == _bleServer->_characteristicSensorType1) {
                         if (_bleServer->_sensorTypeCallback != nullptr) {
-                            _bleServer->_sensorTypeCallback(atoi(_bleServer->_characteristicSensorType1->getValue().c_str()), 1);
+                            uint8_t sensorType = *((uint8_t *)(characteristic->getValue().data()));
+                            _bleServer->_sensorTypeCallback(sensorType, 1);
                         }
                     } else if (characteristic == _bleServer->_characteristicSensorType2) {
                         if (_bleServer->_sensorTypeCallback != nullptr) {
-                            _bleServer->_sensorTypeCallback(atoi(_bleServer->_characteristicSensorType2->getValue().c_str()), 2);
+                            uint8_t sensorType = *((uint8_t *)(characteristic->getValue().data()));
+                            _bleServer->_sensorTypeCallback(sensorType, 2);
                         }
                     }
                 }
