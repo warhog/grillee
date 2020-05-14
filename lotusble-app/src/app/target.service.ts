@@ -19,13 +19,9 @@ const LOTUSBLE_CHARACTERISTIC_BATTERY_UUID = '12325d24-0357-4877-b57a-d323793b44
 const LOTUSBLE_CHARACTERISTIC_SENSORTYPE1_UUID = 'a4b7ca52-c743-4931-9153-ec28030a41a4';
 const LOTUSBLE_CHARACTERISTIC_SENSORTYPE2_UUID = '7488eed8-6b19-4391-9a83-9c97d6f10319';
 
-// TODO home view scan put here
-
 interface ReadAndRegisterData {
   uuid: string,
   datatype: string,
-  read: boolean,
-  registered: boolean,
   readRetries: number,
   registerRetries: number,
   behaviorSubject: BehaviorSubject<number>
@@ -39,8 +35,6 @@ export class TargetService {
   private bleDevice: BleDevice = null;
   private connectionLost: boolean = true;
   private connected: boolean = false;
-  private intervalReadAndRegisterBLE: Subscription = null;
-  private timeoutBLERegistrations: number = null;
   private intervalRssi: Subscription = null;
   private datapoints: Array<ReadAndRegisterData> = [];
   private rssiBehaviorSubject: BehaviorSubject<number> = new BehaviorSubject<number>(0);
@@ -58,8 +52,6 @@ export class TargetService {
     let data: ReadAndRegisterData = {
       uuid: uuid,
       datatype: datatype,
-      read: false,
-      registered: false,
       readRetries: 0,
       registerRetries: 0,
       behaviorSubject: new BehaviorSubject<number>(0)
@@ -256,10 +248,7 @@ export class TargetService {
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SENSORTYPE1_UUID, 'uint8_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SENSORTYPE2_UUID, 'uint8_t');
 
-    this.readAndRegisterAllBLE();
-    this.intervalReadAndRegisterBLE = IntervalObservable.create(1000).subscribe(() => {
-      this.readAndRegisterAllBLE();
-    });
+    this.readAndRegisterAllBleStart();
 
     this.intervalRssi = IntervalObservable.create(5000).subscribe(() => {
       this.ble.readRSSI(this.bleDevice.id).then((rssi) => {
@@ -269,114 +258,20 @@ export class TargetService {
       })
     });
 
+    this.utilService.dismissLoadingOverlay();
     connectedCallback && connectedCallback();
   }
 
-  /**
-   * read and register all listed ble data points registered by addReadAndRegisterBLE
-   * should be called on device connection for inital read and registration of further ble updates
-   */
-  readAndRegisterAllBLE() {
-    // read all BLE values and register for BLE notifications
-    // this is done up to 3 times. the first try is immediately and the next ones in 1s intervals
-    // after the initial run a 3s timer is started. when this timer expires and no registration errors appeared
-    // it is assumed that all registrations were successful, if a registrations fails it is retried (when below 3 retries)
-    // and the 3s timer is restarted (see timer in readAndRegisterAllBLE). this is needed because startNotification has no
-    // successfully registered callback
-    
-    // get all unread entries
-    let unread = this.datapoints.filter((entry) => {
-      return !entry.read;
+  readAndRegisterAllBleStart() {
+    this.datapoints.forEach((entry) => {
+      // read the ble data from device
+      console.log('read entry', entry);
+      this.readBleData(entry);
+  
+      // send the ble notificatino registrations
+      console.log('registering entry', entry);
+      this.registerForBLENotifications(entry);
     });
-    if (unread.length > 0) {
-      console.log('unread entries: ' + unread.length);
-      unread.forEach((entry) => {
-        // read retry handling
-        entry.readRetries++;
-        if (entry.readRetries >= 3) {
-          // too many retries, disconnecting from device
-          console.log('readRetries >= 3: ', entry);
-          this.utilService.showToast('Cannot read data from device, disconnecting.', 3000);
-          this.disconnect();
-        }
-        // read the ble data from device
-        this.readBleData(entry);
-      });
-    } else {
-      // get all unregistered entries
-      let unregistered = this.datapoints.filter((entry) => {
-        return !entry.registered;
-      });
-      console.log('unregistered entries: ' + unregistered.length);
-      if (unregistered.length > 0) {
-        unregistered.forEach((entry) => {
-          // registration retry handling
-          console.log('registering entry', entry);
-          entry.registerRetries++;
-          if (entry.registerRetries >= 3) {
-            // too many retries, disconnecting from device
-            console.log('registerRetries >= 3: ', entry);
-            this.utilService.showToast('Cannot subscribe to device, disconnecting.', 3000);
-            this.disconnect();
-            return;
-          }
-          // send the ble notificatino registrations
-          this.registerForBLENotifications(entry);
-          entry.registered = true;
-          // if a registration done timer is running means we are the second time in the unregistered forEach loop
-          // restart timer to make sure it always waits the defined time when an registration failure happens
-          if (this.isBLERegistrationDoneTimerRunning()) {
-            this.restartBLERegistrationDoneTimer();
-          }
-        });
-      } else {
-        console.log('no unregistered and unread entries');
-        
-        this.utilService.dismissLoadingOverlay();
-        // start a timer here to see if one of the registrations fails later
-        this.startBLERegistrationDoneTimer();
-      }
-    }
-  }
-
-  /**
-   * is a ble registration done timer running?
-   * @returns true if a timer is existing and running
-   */
-  isBLERegistrationDoneTimerRunning() {
-    return this.timeoutBLERegistrations != null;
-  }
-
-  /**
-   * restarts the ble registration done timer
-   */
-  restartBLERegistrationDoneTimer() {
-    if (this.timeoutBLERegistrations != null) {
-      console.log('a registration timer is set, restart');
-      clearTimeout(this.timeoutBLERegistrations);
-      this.timeoutBLERegistrations = null;
-    } else {
-      console.log('restartBLERegistrationDoneTimer called without a timer already existing, creating new timer');
-    }
-    this.startBLERegistrationDoneTimer();
-  }
-
-  /**
-   * start the ble registration done timer. contains also the stop handler to unsubscribe from the interval
-   */
-  startBLERegistrationDoneTimer() {
-    if (this.timeoutBLERegistrations == null) {
-      console.log('starting registrations done timer');
-      this.timeoutBLERegistrations = window.setTimeout(() => {
-        console.log('seems all registered, stop loop');
-        if (this.intervalReadAndRegisterBLE != null) {
-          this.intervalReadAndRegisterBLE.unsubscribe();
-          this.intervalReadAndRegisterBLE = null;
-        } else {
-          console.log('intervalReadAndRegsiterBLE was already null');
-        }
-      }, 3000);
-    }
   }
 
   /**
@@ -391,8 +286,15 @@ export class TargetService {
         this.processReadBleData(entry, data);
       },
       (msg) => {
-        entry.registered = false;
-        console.log('cannot subscribe to ', entry.uuid, msg);
+        console.log('cannot subscribe for notifications to ', entry.uuid, msg);
+        entry.registerRetries++;
+        if (entry.registerRetries >= 3) {
+          console.log('register retries >= 3, abort everything');
+        } else {
+          setTimeout(() => {
+            this.registerForBLENotifications(entry);
+          }, 250);
+        }
       }
     );
   }
@@ -496,6 +398,14 @@ export class TargetService {
       },
       (msg) => {
         console.log('cannot read data: ', msg);
+        entry.readRetries++;
+        if (entry.readRetries >= 3) {
+          console.log('read retries >= 3, abort everything');
+        } else {
+          setTimeout(() => {
+            this.readBleData(entry);
+          }, 250);
+        }
       }
     );
   }
@@ -509,7 +419,6 @@ export class TargetService {
    * @param data the received ble data
    */
   processReadBleData(entry: ReadAndRegisterData, data: ArrayBuffer) {
-    entry.read = true;
     if (entry.datatype == 'uint8_t') {
       entry.behaviorSubject.next(new Uint8Array(data)[0]);
     } else if (entry.datatype == 'uint16_t') {
