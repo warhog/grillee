@@ -109,7 +109,13 @@ export class ThermometerPage implements OnInit {
     }));
 
     this.subscriptions.push(this.targetService.getSubscriptionForAlarm().subscribe((alarm: number) => {
-      this.ngZone.run(() => { this.alarm = alarm == 1 ? true : false; });
+      this.ngZone.run(() => {
+        this.alarm = alarm == 1 ? true : false;
+        if (alarm == 1) {
+          // to alarm
+          this.handleAlarm();
+        }
+      });
     }));
 
     this.subscriptions.push(this.targetService.getSubscriptionForSensorType1().subscribe((sensorType: number) => {
@@ -215,11 +221,11 @@ export class ThermometerPage implements OnInit {
     }
   }
 
+  // TODO alarm stuff should go to a service
   /**
    * handle alarms, should only be triggered on raising or falling edges of value
-   * @param value
    */
-  handleAlarm(value: boolean) {
+  handleAlarm() {
     console.log('handle alarm method');
     if (this.fanRpm < MIN_FAN_RPM) {
       console.log('rpm alarm');
@@ -271,13 +277,15 @@ export class ThermometerPage implements OnInit {
 
     this.localNotifications.on('ack').subscribe((alarmDetails) => {
       console.log('ack', alarmDetails);
-      if (alarmDetails.id == id) {
-        let keyName = alarmDetails.type + 'Ack';
-        if (keyName in this.bleAlarm) {
-          console.log('ack ', keyName);
-          this.bleAlarm[alarmDetails.type + 'Ack'] = true;
-        }
-      }
+      // if (alarmDetails.id == id) {
+      //   let keyName = alarmDetails.type + 'Ack';
+      //   if (keyName in this.bleAlarm) {
+      //     console.log('ack ', keyName);
+      //     this.bleAlarm[alarmDetails.type + 'Ack'] = true;
+      //   }
+      // }
+      this.targetService.setAlarmAck();
+      // TODO ack shall silence the mobile beeper
     });
   }
 

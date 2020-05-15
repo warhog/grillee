@@ -8,20 +8,20 @@ export class ProbePipe implements PipeTransform {
 
   constructor(private utilService: UtilService) {}
 
-  celsiusToFahrenheit(celsius) {
+  celsiusToFahrenheit(celsius: number): number {
     return celsius * 9 / 5 + 32;
   }
 
-  transform(value: any): any {
+  transform(value: number): any {
     if (value == -100) {
       return 'Not connected';
     } else if (value == -200) {
       return 'Unknown sensor';
     } else {
       if (this.utilService.getTemperatureAsFahrenheit()) {
-        return this.celsiusToFahrenheit(value) + ' \xB0F';
+        return this.celsiusToFahrenheit(value).toFixed(0) + ' \xB0F';
       }
-      return value + ' \xB0C';
+      return value.toFixed(0) + ' \xB0C';
     }
   }
 

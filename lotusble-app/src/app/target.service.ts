@@ -201,6 +201,11 @@ export class TargetService {
     return this.rssiBehaviorSubject;
   }
 
+  setAlarmAck() {
+    console.log('send alarm ack');
+    this.sendBleDataBoolean(LOTUSBLE_CHARACTERISTIC_ALARM_UUID, true);
+  }
+
   setFanSpeed(fanSpeed: number) {
     console.log('changed fan speed to ' + fanSpeed);
     fanSpeed = Math.max(Math.min(fanSpeed, 100), 10);

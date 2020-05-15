@@ -39,8 +39,6 @@ bool controlByBle = false;
 bool alarmAcked{false};
 bool alarmFan{false};
 bool alarmBattery{false};
-bool alarmProbe1{false};
-bool alarmProbe2{false};
 
 EdgeDetector<bool> alarmChanged(false);
 EdgeDetector<bool> alarmFanChanged(false);
@@ -56,8 +54,6 @@ EdgeDetector<uint8_t> fanPercentChanged(0);
 
 EdgeDetector<int16_t> probe1Changed(0, 1);
 EdgeDetector<int16_t> probe2Changed(0, 1);
-uint16_t setpoint1 = 80;
-uint16_t setpoint2 = 80;
 
 BleServer bleServer;
 
@@ -97,11 +93,11 @@ void setpointWriteCallback(uint16_t value, uint8_t number) {
     Serial.printf("setpoint write callback %d: %d\n", number, value);
 #endif
     if (number == 1) {
-        setpoint1 = value;
-        storage.setSetpoint1(setpoint1);
+        probe1.setSetpoint(value);
+        storage.setSetpoint1(value);
     } else if (number == 2) {
-        setpoint2 = value;
-        storage.setSetpoint2(setpoint2);
+        probe2.setSetpoint(value);
+        storage.setSetpoint2(value);
     }
     storage.store();
 }
@@ -144,10 +140,14 @@ void setup() {
     }
 #endif
     storage.load();
-    setpoint1 = storage.getSetpoint1();
-    setpoint2 = storage.getSetpoint2();
+    
+    uint16_t setpoint1 = storage.getSetpoint1();
     probe1.setSensorType(storage.getSensorType1());
+    probe1.setSetpoint(setpoint1);
+    
+    uint16_t setpoint2 = storage.getSetpoint2();
     probe2.setSensorType(storage.getSensorType2());
+    probe2.setSetpoint(setpoint2);
 
 #ifdef DEBUG
     Serial.println("start ble");
@@ -164,8 +164,8 @@ void setup() {
     bleServer.setBattery(6.0);
     bleServer.setFan(0);
     bleServer.setRpm(0);
-    bleServer.setSetpoint1(setpoint1);
-    bleServer.setSetpoint2(setpoint2);
+    bleServer.setSetpoint1(probe1.getSetpoint());
+    bleServer.setSetpoint2(probe2.getSetpoint());
     bleServer.setSensorType1(probe1.getSensorType());
     bleServer.setSensorType2(probe2.getSensorType());
     bleServer.setTemperature1(probe1.getProbeTemperature());
@@ -180,18 +180,19 @@ void loop() {
 
     // test if alarm has changed to true
     bool alarm = 0;
-    // if (alarmBatteryChanged(alarmBattery), true) {
-    //     alarm = true;
-    // }
+    if (alarmBatteryChanged(alarmBattery, true)) {
+        alarm = true;
+    }
     if (alarmFanChanged(alarmFan)) {
         alarm = true;
     }
-    // if (alarmProbe1Changed(alarmProbe1), true) {
-    //     alarm = true;
-    // }
-    // if (alarmProbe2Changed(alarmProbe2), true) {
-    //     alarm = true;
-    // }
+    if (alarmProbe1Changed(probe1.isAlarm(), true)) {
+        alarm = true;
+    }
+    Serial.flush();
+    if (alarmProbe2Changed(probe2.isAlarm(), true)) {
+        alarm = true;
+    }
     if (alarm) {
         // new alarm triggered
 #ifdef DEBUG
@@ -202,7 +203,7 @@ void loop() {
         buzzer.enable();
     }
 
-    bool alarms = alarmBattery | alarmFan | alarmProbe1 | alarmProbe2;
+    bool alarms = alarmBattery | alarmFan | probe1.isAlarm() | probe2.isAlarm();
     alarmChanged.lambda(alarms, [](bool newValue, bool oldValue) {
         if (!newValue) {
             // changed alarm back to normal

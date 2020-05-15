@@ -26,6 +26,26 @@ class Probe {
             return _sensorType;
         }
 
+        void setSetpoint(uint16_t setpoint) {
+            _setpoint = setpoint;
+        }
+
+        uint16_t getSetpoint() {
+            return _setpoint;
+        }
+
+        bool isAlarm() {
+            if (getProbeTemperature() <= -100) {
+                return false;
+            }
+            if (getProbeTemperature() >= _setpoint) {
+                _alarm = true;
+            } else if (getProbeTemperature() < (_setpoint - 1)) {
+                _alarm = false;
+            }
+            return _alarm;
+        }
+
         uint16_t update() {
             if (_timeout()) {
                 _timeout.reset();
@@ -70,6 +90,8 @@ class Probe {
         int16_t _probeTemperature;
         SensorType _sensorType;
         struct sensordata_t _sensorData;
+        uint16_t _setpoint{80};
+        bool _alarm{false};
 
 };
 
