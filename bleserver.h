@@ -9,10 +9,9 @@
 
 #include "sensortype.h"
 
-#define NR_OF_CHARACTERISTICS 11
+#define NR_OF_CHARACTERISTICS 10
 #define SERVICE_UUID "32b33b05-6ac4-4137-9ca7-6dc3dbac4e41"
 #define CHARACTERISTIC_ALARM_UUID "06817906-f5db-4d66-86e4-776e74074cd6"
-#define CHARACTERISTIC_ALARMACK_UUID "16817906-f5db-4d66-86e4-776e74074cd6"
 #define CHARACTERISTIC_SETPOINT1_UUID "857f0daf-b9e1-45c9-9df3-c935f3e0f163"
 #define CHARACTERISTIC_SETPOINT2_UUID "779d932a-c52c-43a0-a38f-668e0bc76f68"
 #define CHARACTERISTIC_TEMPERATURE1_UUID "fc24e2b1-9612-4a85-8f13-c7c0b8ed74c9"
@@ -26,7 +25,7 @@
 class BleServer {
 public:
     BleServer() : _fanCallback(nullptr), _controlByBleCallback(nullptr), _setpointCallback(nullptr),
-        _sensorTypeCallback(nullptr), _alarmAckCallback(nullptr) {}
+        _sensorTypeCallback(nullptr), _alarmCallback(nullptr) {}
 
     /**
      * @brief Create a %BLE Service.
@@ -59,8 +58,8 @@ public:
         _setpointCallback = callback;
     }
 
-    void setAlarmAckWriteCallback(void (*callback)()) {
-        _alarmAckCallback = callback;
+    void setAlarmWriteCallback(void (*callback)()) {
+        _alarmCallback = callback;
     }
 
     void setSensorTypeCallback(void (*callback)(uint8_t sensorType, uint8_t nr)) {
@@ -69,7 +68,6 @@ public:
 
     void start() {
         _characteristicAlarm = createCharacteristic(BLEUUID(CHARACTERISTIC_ALARM_UUID));
-        _characteristicAlarmAck = createCharacteristic(BLEUUID(CHARACTERISTIC_ALARMACK_UUID));
         _characteristicSetpoint1 = createCharacteristic(BLEUUID(CHARACTERISTIC_SETPOINT1_UUID));
         _characteristicSetpoint2 = createCharacteristic(BLEUUID(CHARACTERISTIC_SETPOINT2_UUID));
         _characteristicTemperature1 = createCharacteristic(BLEUUID(CHARACTERISTIC_TEMPERATURE1_UUID));
@@ -81,7 +79,7 @@ public:
         _characteristicSensorType2 = createCharacteristic(BLEUUID(CHARACTERISTIC_SENSORTYPE2_UUID));
 
         MyCharacteristicCallback *characteristicCallback = new MyCharacteristicCallback(this);
-        _characteristicAlarmAck->setCallbacks(characteristicCallback);
+        _characteristicAlarm->setCallbacks(characteristicCallback);
         _characteristicSetpoint1->setCallbacks(characteristicCallback);
         _characteristicSetpoint2->setCallbacks(characteristicCallback);
         _characteristicFan->setCallbacks(characteristicCallback);
@@ -96,10 +94,8 @@ public:
         BLEDevice::startAdvertising();
     }
 
-    void setAlarm(bool alarm) {
-        uint8_t temp[1];
-        temp[0] = alarm ? 1 : 0;
-        _characteristicAlarm->setValue(temp, 1);
+    void setAlarm(uint8_t alarm) {
+        _characteristicAlarm->setValue(std::string((char *)&alarm, 1));
         if (_devicesConnected > 0) {
             _characteristicAlarm->notify();
         }
@@ -178,7 +174,6 @@ public:
         BLEServer *_server;
         BLEService *_service;
         BLECharacteristic *_characteristicAlarm;
-        BLECharacteristic *_characteristicAlarmAck;
         BLECharacteristic *_characteristicSetpoint1;
         BLECharacteristic *_characteristicSetpoint2;
         BLECharacteristic *_characteristicTemperature1;
@@ -192,7 +187,7 @@ public:
         void (*_controlByBleCallback)(bool control);
         void (*_fanCallback)(uint8_t value);
         void (*_setpointCallback)(uint16_t value, uint8_t number);
-        void (*_alarmAckCallback)();
+        void (*_alarmCallback)();
         void (*_sensorTypeCallback)(uint8_t sensorType, uint8_t number);
 
         friend class MyServerCallbacks;
@@ -225,9 +220,9 @@ public:
                             uint16_t setpoint = *((uint16_t *)(characteristic->getValue().data()));
                             _bleServer->_setpointCallback(setpoint, 2);
                         }
-                    } else if (characteristic == _bleServer->_characteristicAlarmAck) {
-                        if (_bleServer->_alarmAckCallback != nullptr) {
-                            _bleServer->_alarmAckCallback();
+                    } else if (characteristic == _bleServer->_characteristicAlarm) {
+                        if (_bleServer->_alarmCallback != nullptr) {
+                            _bleServer->_alarmCallback();
                         }
                     } else if (characteristic == _bleServer->_characteristicSensorType1) {
                         if (_bleServer->_sensorTypeCallback != nullptr) {

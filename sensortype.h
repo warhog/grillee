@@ -92,8 +92,8 @@ class SensorData {
                 case SensorType::THERMOWORKS:
                     return { .rn = 97.31, .a = 3.3556417e-03, .b = 2.5191450e-04, .c = 2.3606960e-06 };
                 case SensorType::PRO05:
-                    //return { .rn = 50.0, .a = 3.3648668e-03, .b = 2.6369913e-04, .c = 3.9587022e-06 };
-                    return { .rn = 50.0, .a = 3.3573183e-03, .b = 2.5336573e-04, .c = 9.6659979e-07 };
+                    return { .rn = 50.0, .a = 3.3648668e-03, .b = 2.6369913e-04, .c = 3.9587022e-06 };
+                    // return { .rn = 50.0, .a = 3.3573183e-03, .b = 2.5336573e-04, .c = 9.6659979e-07 };
                 default:
 #ifdef DEBUG
                     Serial.printf("unknown sensortype: %d\n", sensorType);

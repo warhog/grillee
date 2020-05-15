@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <MedianFilterLib.h>
+#include <Mcp320x.h>
 
 #include "timeout.h"
 #include "toggle.h"
@@ -8,6 +9,7 @@
 
 #include "battery.h"
 #include "adc.h"
+#include "adc_mcp3208.h"
 #include "sensortype.h"
 #include "probe.h"
 #include "fan.h"
@@ -24,6 +26,11 @@ const gpio_num_t PIN_ADC_MEAT_PROBE2 = GPIO_NUM_33;
 const gpio_num_t PIN_RPM = GPIO_NUM_27;
 const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_16;
 const gpio_num_t PIN_DEFAULT_VOLTAGE_OUTPUT = GPIO_NUM_26;
+const gpio_num_t PIN_ADC_CS = GPIO_NUM_5;
+
+const MCP3208::Channel ADC_CHANNEL_BATTERY = MCP3208::Channel::SINGLE_7;
+const MCP3208::Channel ADC_CHANNEL_PROBE0 = MCP3208::Channel::SINGLE_0;
+const MCP3208::Channel ADC_CHANNEL_PROBE1 = MCP3208::Channel::SINGLE_1;
 
 // weather controlled by bluetooth or poti
 bool controlByBle = false;
@@ -53,12 +60,14 @@ uint16_t setpoint1 = 80;
 uint16_t setpoint2 = 80;
 
 BleServer bleServer;
+
+util::Adc_MCP3208 adcMcp3208;
 util::Storage storage;
 util::Buzzer buzzer(PIN_ALARM_BUZZER);
-util::Battery battery(PIN_ADC_BATTERY);
+util::Battery battery(&adcMcp3208, ADC_CHANNEL_BATTERY);
 
-measurement::Probe probe1(PIN_ADC_MEAT_PROBE1, SensorType::UNKNOWN);
-measurement::Probe probe2(PIN_ADC_MEAT_PROBE2, SensorType::UNKNOWN);
+measurement::Probe probe1(&adcMcp3208, ADC_CHANNEL_PROBE0, SensorType::UNKNOWN);
+measurement::Probe probe2(&adcMcp3208, ADC_CHANNEL_PROBE1, SensorType::UNKNOWN);
 
 MedianFilter<uint16_t> medianFilterPoti(10);
 
@@ -111,9 +120,9 @@ void sensorTypeWriteCallback(uint8_t sensorType, uint8_t number) {
     storage.store();
 }
 
-void alarmAckWriteCallback() {
+void alarmWriteCallback() {
 #ifdef DEBUG
-    Serial.println("alarm ack callback");
+    Serial.println("alarm write callback");
 #endif
     alarmAcked = true;
     buzzer.disable();
@@ -139,21 +148,15 @@ void setup() {
     setpoint2 = storage.getSetpoint2();
     probe1.setSensorType(storage.getSensorType1());
     probe2.setSensorType(storage.getSensorType2());
-    // TODO defaultVref
 
-    // set analog pin for reading the poti
-    analogSetPinAttenuation(PIN_ADC_POTI, ADC_11db);
-
-    // Adc::enableVrefOutput(PIN_DEFAULT_VOLTAGE_OUTPUT);
-    // for (;;) {
-    //     yield();
-    // }
-
+#ifdef DEBUG
+    Serial.println("start ble");
+#endif
     bleServer.begin();
     bleServer.setControlByBleCallback(&controlByBleCallback);
     bleServer.setFanWriteCallback(&fanWriteCallback);
     bleServer.setSetpointWriteCallback(&setpointWriteCallback);
-    bleServer.setAlarmAckWriteCallback(&alarmAckWriteCallback);
+    bleServer.setAlarmWriteCallback(&alarmWriteCallback);
     bleServer.setSensorTypeCallback(&sensorTypeWriteCallback);
     bleServer.start();
 
@@ -168,19 +171,28 @@ void setup() {
     bleServer.setTemperature1(probe1.getProbeTemperature());
     bleServer.setTemperature2(probe2.getProbeTemperature());
 
+#ifdef DEBUG
+    Serial.println("init done");
+#endif
 }
 
 void loop() {
 
-    bool alarm = false;
-    // if (alarmBatteryChanged(alarmBattery), true) { alarm = true; }
-    if (alarmFanChanged(alarmFan)) { alarm = true; }
-    // if (alarmProbe1Changed(alarmProbe1), true) { alarm = true; }
-    // if (alarmProbe2Changed(alarmProbe2), true) { alarm = true; }
-        static int i = 0;
-    if (alarm && i == 0) {
-        i = 1;
-
+    // test if alarm has changed to true
+    bool alarm = 0;
+    // if (alarmBatteryChanged(alarmBattery), true) {
+    //     alarm = true;
+    // }
+    if (alarmFanChanged(alarmFan)) {
+        alarm = true;
+    }
+    // if (alarmProbe1Changed(alarmProbe1), true) {
+    //     alarm = true;
+    // }
+    // if (alarmProbe2Changed(alarmProbe2), true) {
+    //     alarm = true;
+    // }
+    if (alarm) {
         // new alarm triggered
 #ifdef DEBUG
         Serial.println("sending alarm");
@@ -202,7 +214,7 @@ void loop() {
         }
     });
 
-     if (probe1Changed(probe1.update())) {
+    if (probe1Changed(probe1.update())) {
         bleServer.setTemperature1(probe1.getProbeTemperature());
     }
 

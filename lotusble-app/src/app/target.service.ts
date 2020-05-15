@@ -8,7 +8,6 @@ import { UtilService } from './util.service';
 
 const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 const LOTUSBLE_CHARACTERISTIC_ALARM_UUID = '06817906-f5db-4d66-86e4-776e74074cd6';
-const LOTUSBLE_CHARACTERISTIC_ALARMACK_UUID = '16817906-f5db-4d66-86e4-776e74074cd6';
 const LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID = '857f0daf-b9e1-45c9-9df3-c935f3e0f163';
 const LOTUSBLE_CHARACTERISTIC_SETPOINT2_UUID = '779d932a-c52c-43a0-a38f-668e0bc76f68';
 const LOTUSBLE_CHARACTERISTIC_TEMPERATURE1_UUID = 'fc24e2b1-9612-4a85-8f13-c7c0b8ed74c9';
@@ -49,6 +48,15 @@ export class TargetService {
    * @param datatype the datatype (not ionic/ts datatype but c++ datatype) for data conversion
    */
   addReadAndRegisterBLE(uuid: string, datatype: string) {
+    let filtered: Array<ReadAndRegisterData> = this.datapoints.filter((entry: ReadAndRegisterData) => {
+      return entry.uuid == uuid;
+    });
+    if (filtered.length > 0) {
+      // already existing -> return
+      console.log('addReadAndRegisterBLE uuid', uuid, 'already existing');
+      return;
+    }
+
     let data: ReadAndRegisterData = {
       uuid: uuid,
       datatype: datatype,
@@ -289,11 +297,12 @@ export class TargetService {
         console.log('cannot subscribe for notifications to ', entry.uuid, msg);
         entry.registerRetries++;
         if (entry.registerRetries >= 3) {
-          console.log('register retries >= 3, abort everything');
+          console.log('register retries >= 3, disconnecting');
+          this.disconnect();
         } else {
           setTimeout(() => {
             this.registerForBLENotifications(entry);
-          }, 250);
+          }, 500);
         }
       }
     );
@@ -321,7 +330,7 @@ export class TargetService {
    * @param data the string data to send
    */
   sendBleDataNumber(characteristic: string, datatype: string, data: number) {
-    console.log('sendBleDataNumber', this.numberToBytes(data, datatype));
+    console.log('sendBleDataNumber', this.numberToBytes(data, datatype), 'characteristic', characteristic, 'datatype', datatype);
     this.ble.write(this.bleDevice.id, LOTUSBLE_SERVICE_UUID, characteristic, this.numberToBytes(data, datatype)).then(
       result => {
         console.log('ble write number result: ', result);
@@ -400,11 +409,13 @@ export class TargetService {
         console.log('cannot read data: ', msg);
         entry.readRetries++;
         if (entry.readRetries >= 3) {
-          console.log('read retries >= 3, abort everything');
+          console.log('read retries >= 3, disconnecting');
+          this.disconnect();
         } else {
           setTimeout(() => {
+            console.log('retry read ble data');
             this.readBleData(entry);
-          }, 250);
+          }, 500);
         }
       }
     );

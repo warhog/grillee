@@ -16,7 +16,6 @@ void Storage::loadFactoryDefaults() {
     _sensorType2 = SensorType::UNKNOWN;
     _setpoint1 = 80;
     _setpoint2 = 80;
-    // default vref is skipped as this is more like a factory default than a user setting
 }
 
 bool Storage::isValid() {
@@ -36,9 +35,8 @@ void Storage::load() {
         _sensorType2 = SensorData::getSensorTypeByIndex(storage.sensorType2);
         _setpoint1 = storage.setpoint1;
         _setpoint2 = storage.setpoint2;
-        _defaultVref = storage.defaultVref;
 #ifdef DEBUG
-        Serial.printf("sensorType1: %d, sensorType2: %d, setpoint1: %d, setpoint2: %d, _defaultVref: %d\n", _sensorType1, _sensorType2, _setpoint1, _setpoint2, _defaultVref);
+        Serial.printf("sensorType1: %d, sensorType2: %d, setpoint1: %d, setpoint2: %d\n", _sensorType1, _sensorType2, _setpoint1, _setpoint2);
 #endif
     } else {
 #ifdef DEBUG
@@ -55,7 +53,6 @@ void Storage::store() {
 
     StorageEepromStruct storage;
     strncpy(storage.version, CONFIG_VERSION, 3);
-    storage.defaultVref = _defaultVref;
     storage.sensorType1 = SensorData::getSensorIndexByType(_sensorType1);
     storage.sensorType2 = SensorData::getSensorIndexByType(_sensorType2);
     storage.setpoint1 = _setpoint1;

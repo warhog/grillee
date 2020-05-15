@@ -1,7 +1,8 @@
 #pragma once
 
 #include <Arduino.h>
-#include "adc.h"
+#include <MedianFilterLib.h>
+#include "adc_mcp3208.h"
 #include "timeout.h"
 
 namespace util {
@@ -11,26 +12,25 @@ const float FACTOR_BATTERY_VOLTAGE = 5.545454545;
 
 class Battery {
     public:
-        Battery(gpio_num_t pin) {
-            _adc = new Adc(pin);
+        Battery(Adc_MCP3208 *adc, MCP3208::Channel channel) : _adc(adc), _channel(channel) {
         }
 
         void update() {
             if (_timeout()) {
                 _timeout.reset();
-                _adc->update();
-                _batteryVoltage = static_cast<float>(_adc->getFilteredVoltage()) / 1000.0 * FACTOR_BATTERY_VOLTAGE;
+                _adcFiltered.AddValue(static_cast<float>(_adc->getRawVoltage(_channel)) / 1000.0 * FACTOR_BATTERY_VOLTAGE);
             }
         }
 
         float getBatteryVoltage() {
-            return _batteryVoltage;
+            return _adcFiltered.GetFiltered();
         }
 
     private:
-        Adc *_adc;
+        Adc_MCP3208 *_adc;
+        MCP3208::Channel _channel;
+        MedianFilter<float> _adcFiltered{10};
         TimeoutMs _timeout{500};
-        float _batteryVoltage;
 
 };
 

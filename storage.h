@@ -12,13 +12,6 @@ public:
     void loadFactoryDefaults();
     bool isValid();
     
-    void setDefaultVref(unsigned int defaultVref) {
-        this->_defaultVref = defaultVref;
-    }
-    unsigned int getDefaultVref() {
-        return this->_defaultVref;
-    }
-
     void setSensorType1(SensorType sensorType) {
         _sensorType1 = sensorType;
     }
@@ -54,9 +47,8 @@ public:
 private:
     SensorType _sensorType1{SensorType::UNKNOWN};
     SensorType _sensorType2{SensorType::UNKNOWN};
-    uint16_t _setpoint1{0};
-    uint16_t _setpoint2{0};
-    uint16_t _defaultVref{0};
+    uint16_t _setpoint1{80};
+    uint16_t _setpoint2{80};
 
     struct StorageEepromStruct {
         char version[4];
@@ -64,7 +56,6 @@ private:
         uint8_t sensorType2;
         uint16_t setpoint1;
         uint16_t setpoint2;
-        uint16_t defaultVref;
     };
 
 };
