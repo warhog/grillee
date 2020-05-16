@@ -64,7 +64,7 @@ export class SetpointPage implements OnInit {
         console.log('selectedTemperature', this.selectedTemperature);
       });
     } else {
-      console.log('no predefined temperature found for selection ', selection);
+      console.info('no predefined temperature found for selection ', selection);
     }
   }
 

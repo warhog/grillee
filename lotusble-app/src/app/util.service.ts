@@ -49,12 +49,12 @@ export class UtilService {
         if (bleDevice != null) {
           resolve(bleDevice);
         } else {
-          console.log('bledevice is null');
+          console.error('bledevice is null');
           reject();
         }
       },
       (error: string) => {
-        console.log('storage error', error)
+        console.error('storage error', error)
         reject();
       });
     });
@@ -82,12 +82,12 @@ export class UtilService {
           this.temperatureAsFahrenheit = bool;
           resolve(bool);
         } else {
-          console.log('bool is null');
+          console.error('bool is null');
           reject();
         }
       },
       (error: string) => {
-        console.log('storage error', error)
+        console.error('storage error', error)
         reject();
       });
     });

@@ -21,8 +21,6 @@ export class HomePage {
     private targetService: TargetService
   ) {}
   
-  // TODO doc everywhere
-
   ionViewDidEnter() { 
   }
 

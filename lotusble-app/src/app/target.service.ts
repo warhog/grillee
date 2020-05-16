@@ -53,7 +53,7 @@ export class TargetService {
     });
     if (filtered.length > 0) {
       // already existing -> return
-      console.log('addReadAndRegisterBLE uuid', uuid, 'already existing');
+      console.info('addReadAndRegisterBLE uuid', uuid, 'already existing');
       return;
     }
 
@@ -67,7 +67,10 @@ export class TargetService {
     this.datapoints.push(data);
   }
 
-  // TODO doc
+  /**
+   * get the ReadAndRegisterData entry for a given uuid
+   * @param uuid 
+   */
   getReadAndRegisterDataForUuid(uuid: string): ReadAndRegisterData {
     let data: Array<ReadAndRegisterData> = this.datapoints.filter((entry: ReadAndRegisterData) => {
       return entry.uuid == uuid;
@@ -109,11 +112,17 @@ export class TargetService {
         this.connected = false;
         this.connectionLost = true;
       },
-      () => console.log('error during disconnecting', this.bleDevice)
+      () => console.error('error during disconnecting', this.bleDevice)
     )
   }
 
-  // TODO doc
+  /**
+   * tests if a stored ble device is present and triggers load callback or starts a ble scan and calls the scan callback for each new device
+   * that is discovered
+   * 
+   * @param callbackLoaded 
+   * @param callbackScanNewDevice 
+   */
   loadOrScan(callbackLoaded: Function, callbackScanNewDevice: Function) {
     this.utilService.loadBleDevice().then((bleDevice: BleDevice) => {
       console.log('ble device loaded');
@@ -138,7 +147,7 @@ export class TargetService {
 }
 
   scanError(error: string) {
-    console.log('error scanning ble', error);
+    console.error('error scanning ble', error);
   }
 
 
@@ -267,7 +276,7 @@ export class TargetService {
       this.ble.readRSSI(this.bleDevice.id).then((rssi) => {
         this.rssiBehaviorSubject.next(rssi);
       }, (msg) => {
-        console.log('rssi read failed');
+        console.error('rssi read failed');
       })
     });
 
@@ -299,10 +308,10 @@ export class TargetService {
         this.processReadBleData(entry, data);
       },
       (msg) => {
-        console.log('cannot subscribe for notifications to ', entry.uuid, msg);
+        console.error('cannot subscribe for notifications to ', entry.uuid, msg);
         entry.registerRetries++;
         if (entry.registerRetries >= 3) {
-          console.log('register retries >= 3, disconnecting');
+          console.error('register retries >= 3, disconnecting');
           this.disconnect();
         } else {
           setTimeout(() => {
@@ -340,7 +349,7 @@ export class TargetService {
       result => {
         console.log('ble write number result: ', result);
       }).catch((msg) => {
-        console.log('cannot write ble number data: ', msg);
+        console.error('cannot write ble number data: ', msg);
         this.utilService.showToast('Cannot write data to device (' + msg + ').', 3000);
       });
   }
@@ -349,13 +358,17 @@ export class TargetService {
       result => {
         console.log('ble write bool result: ', result);
       }).catch((msg) => {
-        console.log('cannot write ble bool data: ', msg);
+        console.error('cannot write ble bool data: ', msg);
         this.utilService.showToast('Cannot write data to device (' + msg + ').', 3000);
       });
   }
 
 
-  // TODO doc
+  /**
+   * converts a given number to a c datatype
+   * @param nr the number
+   * @param datatype the datatype (can be (u)int8_t, (u)int16_t, (u)int32_t, float32)
+   */
   numberToBytes(nr: number, datatype: string): ArrayBuffer {
     let result: ArrayBuffer = new ArrayBuffer(2);
     if (datatype == 'uint8_t') {
@@ -373,17 +386,23 @@ export class TargetService {
     } else if (datatype == 'float32_t') {
       result = Float32Array.of(nr).buffer;
     } else {
-      console.log('unknown datatype: ', datatype);
+      console.error('unknown datatype: ', datatype);
     }
     return result;
   }
 
-  // TODO doc
+  /**
+   * converts a given bool to uint8array
+   * @param bool 
+   */
   boolToBytes(bool: boolean): ArrayBuffer {
     return Uint8Array.of(bool ? 1 : 0).buffer;
   }
 
-  // TODO doc
+  /**
+   * read the ble data for a given uuid
+   * @param uuid 
+   */
   readBleDataFromUuid(uuid: string): number {
     let data: ReadAndRegisterData = this.getReadAndRegisterDataForUuid(uuid);
     if (data != null) {
@@ -411,10 +430,10 @@ export class TargetService {
         this.processReadBleData(entry, data);
       },
       (msg) => {
-        console.log('cannot read data: ', msg);
+        console.error('cannot read data: ', msg);
         entry.readRetries++;
         if (entry.readRetries >= 3) {
-          console.log('read retries >= 3, disconnecting');
+          console.error('read retries >= 3, disconnecting');
           this.disconnect();
         } else {
           setTimeout(() => {
@@ -453,7 +472,7 @@ export class TargetService {
       // TODO return bool
       entry.behaviorSubject.next(new Uint8Array(data)[0] == 1 ? 1 : 0);
     } else {
-      console.log('unknown datatype: ', entry.datatype);
+      console.error('unknown datatype: ', entry.datatype);
       return;
     }
   }
@@ -463,12 +482,12 @@ export class TargetService {
    * @param disconnectData the disconnection reason
    */
   onConnectionError(disconnectData) {
-    console.log('disconnected (connection error): ', disconnectData);
+    console.error('disconnected (connection error): ', disconnectData);
     this.connectionLost = true;
     this.utilService.dismissLoadingOverlay();
     if (this.connected) {
       // if we were connected before try to reconnect
-      console.log('connection lost, trying to reconnect');
+      console.info('connection lost, trying to reconnect');
       this.utilService.createLoadingOverlay('Trying to reconnect...');
     }
   }

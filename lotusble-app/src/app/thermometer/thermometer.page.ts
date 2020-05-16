@@ -1,12 +1,9 @@
 import { Component, OnInit, NgZone } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { NavController, Platform, ModalController } from '@ionic/angular';
-import { BleAlarm } from '../models/blealarm';
+import { ModalController } from '@ionic/angular';
 import { AudioService } from '../audio.service';
 import { Subscription } from 'rxjs';
 import { IntervalObservable } from 'rxjs/observable/IntervalObservable'
 import { BackgroundMode } from '@ionic-native/background-mode/ngx';
-import { LocalNotifications } from '@ionic-native/local-notifications/ngx';
 import { AlarmService } from '../alarm.service';
 import { SetpointPage } from '../setpoint/setpoint.page';
 import { MeatTemperatureService } from '../meat-temperature.service';
@@ -16,6 +13,11 @@ import { TargetService } from '../target.service';
 import { UtilService } from '../util.service';
 
 const MIN_FAN_RPM = 300;
+const ALARM_ID_FAN = 1;
+const ALARM_ID_BATTERY = 2;
+const ALARM_ID_PROBE1 = 3;
+const ALARM_ID_PROBE2 = 4;
+const ALARM_ID_LOST_CONNECTION = 5;
 
 @Component({
   selector: 'app-thermometer',
@@ -23,18 +25,6 @@ const MIN_FAN_RPM = 300;
   styleUrls: ['./thermometer.page.scss'],
 })
 export class ThermometerPage implements OnInit {
-
-  private _bleAlarm: BleAlarm = {
-    alarm: false,
-    alarmFan: false,
-    alarmFanAck: false,
-    alarmBattery: false,
-    alarmBatteryAck: false,
-    alarmTemperature1: false,
-    alarmTemperature1Ack: false,
-    alarmTemperature2: false,
-    alarmTemperature2Ack: false
-  };
 
   private _rssi: number = 0;
   private alarmBlink: boolean = false;
@@ -53,13 +43,11 @@ export class ThermometerPage implements OnInit {
   private _temperatureProbe2: number = 0.0;
   private _sensorType1: SensorType = SensorType.UNKNOWN;
   private _sensorType2: SensorType = SensorType.UNKNOWN;
-  private _alarm: boolean = false;
 
   constructor(private backgroundMode: BackgroundMode,
     private meatTemperatureService: MeatTemperatureService,
     private modalController: ModalController,
     private alarmService: AlarmService,
-    private localNotifications: LocalNotifications,
     private audioService: AudioService,
     private sensorTypeService: SensorTypeService,
     private targetService: TargetService,
@@ -71,10 +59,12 @@ export class ThermometerPage implements OnInit {
 
 
   ngOnInit() {
-    // // TODO reset alarm on probe temperature setpoint changes
+    
   }
 
-  // TODO doc
+  /**
+   * subscribe to the needed ble notifications for this view
+   */
   doSubscriptions() {
     this.subscriptions.push(this.targetService.getSubscriptionForFanRpm().subscribe((fanRpm: number) => {
       this.ngZone.run(() => { this.fanRpm = fanRpm; console.log('fanRpm', fanRpm); });
@@ -110,10 +100,9 @@ export class ThermometerPage implements OnInit {
 
     this.subscriptions.push(this.targetService.getSubscriptionForAlarm().subscribe((alarm: number) => {
       this.ngZone.run(() => {
-        this.alarm = alarm == 1 ? true : false;
         if (alarm == 1) {
           // to alarm
-          this.handleAlarm();
+          this.handleIncomingAlarm();
         }
       });
     }));
@@ -128,8 +117,10 @@ export class ThermometerPage implements OnInit {
 
   }
 
-  // TODO doc
-  getBatteryIcon() {
+  /**
+   * get the battery icon name depending on battery status
+   */
+  getBatteryIcon(): string {
     if (this.battery >= 5.5) {
       return 'battery-full-outline';
     } else if (this.battery > 5.0 && this.battery < 5.5) {
@@ -139,26 +130,24 @@ export class ThermometerPage implements OnInit {
     }
   }
 
-  // TODO doc
-  hasAlarmFooter() {
-    return this.alarm;
+  /**
+   * tests if any alarm is existing, hides alarm footer in the view
+   */
+  hasAlarmFooter(): boolean {
+    return this.alarmService.hasAlarm();
   }
 
-  // TODO doc
-  getAlarmFooterColor() {
+  /**
+   * get the color name for the alarm footer in the view
+   */
+  getAlarmFooterColor(): string {
     return this.alarmBlink ? "danger" : "warning";
   }
 
-  // TODO doc
-  getSensorTypeString(which: number) {
-    if (which == 1) {
-      return this.sensorTypeService.getSensorTypeModelBySensorType(this.sensorType1).name;
-    } else {
-      return this.sensorTypeService.getSensorTypeModelBySensorType(this.sensorType2).name;
-    }
-  }
-
-  // TODO doc
+  /**
+   * get the type of the meat as a string for the view
+   * @param which probe number (1 or 2)
+   */
   getMeatTypeString(which: number) {
     if (which == 1) {
       return this.meatTemperatureService.getMeatTypeString(this.meatTypeTemperature1);
@@ -206,7 +195,7 @@ export class ThermometerPage implements OnInit {
     const { data } = await modal.onWillDismiss();
     console.log('data modal:', data);
     if (!data || !data.meatTypeTemperature) {
-      console.log('strange data from setpoint page returned', data);
+      console.info('strange data from setpoint page returned', data);
       return;
     }
     let meatTypeTemperatureResponse: MeatTypeTemperature = data.meatTypeTemperature as MeatTypeTemperature;
@@ -221,72 +210,34 @@ export class ThermometerPage implements OnInit {
     }
   }
 
-  // TODO alarm stuff should go to a service
   /**
-   * handle alarms, should only be triggered on raising or falling edges of value
+   * handle alarms, should only be triggered on raising edges of value
    */
-  handleAlarm() {
+  handleIncomingAlarm() {
     console.log('handle alarm method');
     if (this.fanRpm < MIN_FAN_RPM) {
       console.log('rpm alarm');
-      this.bleAlarm.alarm = true;
-      this.bleAlarm.alarmFan = true;
-      this.createLocalAlarmNotification('alarmFan', 1, 'Fan speed < ' + MIN_FAN_RPM + ' rpm')
+      this.alarmService.createAlarm(ALARM_ID_FAN, 'Fan speed < ' + MIN_FAN_RPM + ' rpm', (alarmId: number) => {
+        this.targetService.setAlarmAck();
+      });
     } else if (this.battery < 4.5) {
       console.log('battery alarm');
-      this.bleAlarm.alarm = true;
-      this.bleAlarm.alarmBattery = true;
-      this.createLocalAlarmNotification('alarmBattery', 2, 'Low battery voltage')
+      this.alarmService.createAlarm(ALARM_ID_BATTERY, 'Low battery voltage', (alarmId: number) => {
+        this.targetService.setAlarmAck();
+      });
     } else if (this.temperatureProbe1 >= this.setpoint1) {
       console.log('temperature1 >= setpoint1');
-      this.bleAlarm.alarm = true;
-      this.bleAlarm.alarmTemperature1 = true;
-      this.createLocalAlarmNotification('alarmTemperature1', 3, 'Probe 1 reached set temperature')
+      this.alarmService.createAlarm(ALARM_ID_PROBE1, 'Probe 1 reached set temperature', (alarmId: number) => {
+        this.targetService.setAlarmAck();
+      });
     } else if (this.temperatureProbe2 >= this.setpoint2) {
       console.log('temperature2 >= setpoint2');
-      this.bleAlarm.alarm = true;
-      this.bleAlarm.alarmTemperature2 = true;
-      this.createLocalAlarmNotification('alarmTemperature2', 4, 'Probe 2 reached set temperature')
+      this.alarmService.createAlarm(ALARM_ID_PROBE2, 'Probe 2 reached set temperature', (alarmId: number) => {
+        this.targetService.setAlarmAck();
+      });
     } else {
-      console.log('no alarm');
-      this.bleAlarm.alarm = false;
-      this.bleAlarm.alarmFan = false;
-      this.bleAlarm.alarmBattery = false;
-      this.bleAlarm.alarmTemperature1 = false;
-      this.bleAlarm.alarmTemperature2 = false;
+      console.error('no alarm?');
     }
-  }
-
-  /**
-   * create a local alarm notification
-   * @param type alarm type
-   * @param id alarm id
-   * @param text alarm text
-   */
-  createLocalAlarmNotification(type: string, id: number, text: string) {
-    this.localNotifications.schedule({
-      id: id,
-      text: text,
-      foreground: true,
-      actions: [
-        {
-          id: 'ack', title: 'Acknowledge'
-        }
-      ]
-    });
-
-    this.localNotifications.on('ack').subscribe((alarmDetails) => {
-      console.log('ack', alarmDetails);
-      // if (alarmDetails.id == id) {
-      //   let keyName = alarmDetails.type + 'Ack';
-      //   if (keyName in this.bleAlarm) {
-      //     console.log('ack ', keyName);
-      //     this.bleAlarm[alarmDetails.type + 'Ack'] = true;
-      //   }
-      // }
-      this.targetService.setAlarmAck();
-      // TODO ack shall silence the mobile beeper
-    });
   }
 
   ionViewWillEnter() {
@@ -301,13 +252,7 @@ export class ThermometerPage implements OnInit {
     this.subscriptions.push(IntervalObservable.create(10 * 1000).subscribe(() => {
       if (this.targetService.isConnected() && this.targetService.isConnectionLost()) {
         this.audioService.play('beep');
-        // TODO notification
-        // this.localNotifications.schedule({
-        //   id: 1,
-        //   text: 'Lost connection to LotusBLE'
-        // });
-      } else if (this.targetService.isConnected() && !this.targetService.isConnectionLost() && this.bleAlarm.alarm) {
-        this.audioService.play('alarm');
+        this.alarmService.createAlarm(ALARM_ID_LOST_CONNECTION, 'Lost connection to LotusBLE');
       }
     }));
 
@@ -338,12 +283,6 @@ export class ThermometerPage implements OnInit {
     this.backgroundMode.disable();
   }
 
-  public get bleAlarm(): BleAlarm {
-    return this._bleAlarm;
-  }
-  public set bleAlarm(value: BleAlarm) {
-    this._bleAlarm = value;
-  }
   public get rssi(): number {
     return this._rssi;
   }
@@ -403,11 +342,5 @@ export class ThermometerPage implements OnInit {
   }
   public set sensorType2(value: SensorType) {
     this._sensorType2 = value;
-  }
-  public get alarm(): boolean {
-    return this._alarm;
-  }
-  public set alarm(value: boolean) {
-    this._alarm = value;
   }
 }

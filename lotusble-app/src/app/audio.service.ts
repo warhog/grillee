@@ -32,10 +32,10 @@ export class AudioService {
       this.nativeAudio.play(key).then((res) => {
         console.log('played sound ' + key + ': ', res);
       }, (err) => {
-        console.log('cannot play sound ' + key + ': ', err);
+        console.error('cannot play sound ' + key + ': ', err);
       });
     } else {
-      console.log('sound not in preloaded list: ' + key);
+      console.error('sound not in preloaded list: ' + key);
     }
   }
 
