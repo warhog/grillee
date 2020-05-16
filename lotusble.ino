@@ -19,23 +19,19 @@
 #define DEBUG
 
 const gpio_num_t PIN_FAN = GPIO_NUM_17;
-const gpio_num_t PIN_ADC_POTI = GPIO_NUM_34;
-const gpio_num_t PIN_ADC_BATTERY = GPIO_NUM_35;
-const gpio_num_t PIN_ADC_MEAT_PROBE1 = GPIO_NUM_32;
-const gpio_num_t PIN_ADC_MEAT_PROBE2 = GPIO_NUM_33;
 const gpio_num_t PIN_RPM = GPIO_NUM_27;
 const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_16;
-const gpio_num_t PIN_DEFAULT_VOLTAGE_OUTPUT = GPIO_NUM_26;
 const gpio_num_t PIN_ADC_CS = GPIO_NUM_5;
 
 const MCP3208::Channel ADC_CHANNEL_BATTERY = MCP3208::Channel::SINGLE_7;
+const MCP3208::Channel ADC_CHANNEL_POTI = MCP3208::Channel::SINGLE_6;
 const MCP3208::Channel ADC_CHANNEL_PROBE0 = MCP3208::Channel::SINGLE_0;
 const MCP3208::Channel ADC_CHANNEL_PROBE1 = MCP3208::Channel::SINGLE_1;
 
-// weather controlled by bluetooth or poti
+// wether device is controlled by bluetooth device or poti
 bool controlByBle = false;
 
-// alarm
+// alarm states
 bool alarmAcked{false};
 bool alarmFan{false};
 bool alarmBattery{false};
@@ -47,6 +43,7 @@ EdgeDetector<bool> alarmProbe1Changed(false);
 EdgeDetector<bool> alarmProbe2Changed(false);
 
 TimeoutMs timeoutReadPoti(25);
+MedianFilter<uint16_t> medianFilterPoti(10);
 
 EdgeDetector<float> batteryChanged(0, 0.1);
 EdgeDetector<uint16_t> rpmChanged(0, 100);
@@ -65,15 +62,20 @@ util::Battery battery(&adcMcp3208, ADC_CHANNEL_BATTERY);
 measurement::Probe probe1(&adcMcp3208, ADC_CHANNEL_PROBE0, SensorType::UNKNOWN);
 measurement::Probe probe2(&adcMcp3208, ADC_CHANNEL_PROBE1, SensorType::UNKNOWN);
 
-MedianFilter<uint16_t> medianFilterPoti(10);
-
 void rpmIsr();
 ventilation::Fan fan(PIN_FAN, PIN_RPM, &rpmIsr);
+/**
+ * ISR function for rpm detection
+ **/
 void IRAM_ATTR rpmIsr() {
     ventilation::Fan::tickRpm(&fan);
 }
 
 
+/**
+ * callback for control by ble changes
+ * @param controle true if controlled by ble device
+ **/
 void controlByBleCallback(bool control) {
 #ifdef DEBUG
     Serial.printf("set control by ble: %d\n", control);
@@ -81,6 +83,10 @@ void controlByBleCallback(bool control) {
     controlByBle = control;
 }
 
+/**
+ * callback for fan speed change writes
+ * @param sensorType the new fan speed in percent (0-100)
+ **/
 void fanWriteCallback(uint8_t value) {
 #ifdef DEBUG
     Serial.printf("fan write callback: %d\n", value);
@@ -88,6 +94,11 @@ void fanWriteCallback(uint8_t value) {
     fan.setFanPercent(value);
 }
 
+/**
+ * callback for setpoint change writes
+ * @param value the new setpoint in °C
+ * @param number the probe number
+ **/
 void setpointWriteCallback(uint16_t value, uint8_t number) {
 #ifdef DEBUG
     Serial.printf("setpoint write callback %d: %d\n", number, value);
@@ -102,6 +113,11 @@ void setpointWriteCallback(uint16_t value, uint8_t number) {
     storage.store();
 }
 
+/**
+ * callback for sensor type change writes
+ * @param sensorType the new sensor type index
+ * @param number the probe number
+ **/
 void sensorTypeWriteCallback(uint8_t sensorType, uint8_t number) {
 #ifdef DEBUG
     Serial.printf("sensortype write callback %d: %d\n", number, sensorType);
@@ -116,6 +132,9 @@ void sensorTypeWriteCallback(uint8_t sensorType, uint8_t number) {
     storage.store();
 }
 
+/**
+ * callback for alarm ack writes
+ **/
 void alarmWriteCallback() {
 #ifdef DEBUG
     Serial.println("alarm write callback");
@@ -178,6 +197,52 @@ void setup() {
 
 void loop() {
 
+    if (probe1Changed(probe1.update())) {
+        bleServer.setTemperature1(probe1.getProbeTemperature());
+    }
+
+    if (probe2Changed(probe2.update())) {
+        bleServer.setTemperature2(probe2.getProbeTemperature());
+    }
+
+    if (!controlByBle && timeoutReadPoti()) {
+        timeoutReadPoti.reset();
+        uint16_t potiAnalogValue = adcMcp3208.getRawValue(ADC_CHANNEL_POTI);
+        uint16_t potiAnalogFiltered = medianFilterPoti.AddValue(potiAnalogValue);
+        uint16_t fanPercentFiltered = static_cast<uint16_t>((static_cast<float>(potiAnalogFiltered) / 4095.0) * 100.0);
+        if (fanPercentFiltered >= 95) {
+            fanPercentFiltered = 100;
+        }
+        if (fan.getFanPercent() != fanPercentFiltered) {
+            fan.setFanPercent(fanPercentFiltered);
+        }
+        
+    }
+
+    fan.update();
+    uint16_t fanSpeedRpm = fan.getFanSpeedRpm();
+    if (rpmChanged(fanSpeedRpm)) {
+        bleServer.setRpm(fanSpeedRpm);
+    }
+    uint8_t fanPercent = fan.getFanPercent();
+    if (fanPercentChanged(fanPercent)) {
+        bleServer.setFan(fanPercent);
+    }
+    alarmFan = fan.getFanAlarm();
+
+    battery.update();
+    float batteryVoltage = battery.getBatteryVoltage();
+    if (batteryChanged(batteryVoltage)) {
+        if (batteryVoltage < 4.5) {
+            alarmBattery = true;
+        }
+        bleServer.setBattery(batteryVoltage);
+    }
+
+    buzzer.update();
+
+    // alarms have to be handled last to make sure notification for sensor changes comes before alarm notification
+    // TODO should be improved
     // test if alarm has changed to true
     bool alarm = 0;
     if (alarmBatteryChanged(alarmBattery, true)) {
@@ -214,45 +279,5 @@ void loop() {
             buzzer.disable();
         }
     });
-
-    if (probe1Changed(probe1.update())) {
-        bleServer.setTemperature1(probe1.getProbeTemperature());
-    }
-
-    if (probe2Changed(probe2.update())) {
-        bleServer.setTemperature2(probe2.getProbeTemperature());
-    }
-
-    if (!controlByBle && timeoutReadPoti()) {
-        timeoutReadPoti.reset();
-        uint16_t potiAnalogValue = analogRead(PIN_ADC_POTI);
-        uint16_t potiAnalogFiltered = medianFilterPoti.AddValue(potiAnalogValue);
-        uint16_t fanPercentFiltered = static_cast<uint16_t>((static_cast<float>(potiAnalogFiltered) / 4096.0) * 100.0);
-        if (fanPercentFiltered != fan.getFanPercent()) {
-            fan.setFanPercent(fanPercentFiltered);
-        }
-    }
-
-    fan.update();
-    uint16_t fanSpeedRpm = fan.getFanSpeedRpm();
-    if (rpmChanged(fanSpeedRpm)) {
-        bleServer.setRpm(fanSpeedRpm);
-    }
-    uint8_t fanPercent = fan.getFanPercent();
-    if (fanPercentChanged(fanPercent)) {
-        bleServer.setFan(fanPercent);
-    }
-    alarmFan = fan.getFanAlarm();
-
-    battery.update();
-    float batteryVoltage = battery.getBatteryVoltage();
-    if (batteryChanged(batteryVoltage)) {
-        if (batteryVoltage < 4.5) {
-            alarmBattery = true;
-        }
-        bleServer.setBattery(batteryVoltage);
-    }
-
-    buzzer.update();
 
 }

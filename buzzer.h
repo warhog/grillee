@@ -37,12 +37,24 @@ class Buzzer {
 
         void update() {
             if (_enabled && _timeout()) {
+                _state++;
+                if (_state > 3) {
+                    _state = 0;
+                }
+                if (_state == 0 || _state == 2) {
+                    _timeout.setTimeout(125);
+                } else if (_state == 1) {
+                    _timeout.setTimeout(250);
+                } else if (_state == 3) {
+                    _timeout.setTimeout(1000);
+                }
+                
                 _timeout.reset();
 #ifdef DEBUG
                 Serial.println("buzzer timeout triggered");
 #endif
-                if (_toggle()) {
-                    ledcWriteNote(BUZZER_LEDC_CHANNEL, NOTE_F, 4);
+                if (_state == 0 || _state == 2) {
+                    ledcWriteNote(BUZZER_LEDC_CHANNEL, NOTE_A, 6);
                 } else {
                     ledcWriteTone(BUZZER_LEDC_CHANNEL, 0);
                 }
@@ -54,7 +66,7 @@ class Buzzer {
         uint16_t _frequency{0};
         uint16_t _interval{500};
         TimeoutMs _timeout{500};
-        Toggle _toggle{false};
+        uint8_t _state{0};
 };
 
 }

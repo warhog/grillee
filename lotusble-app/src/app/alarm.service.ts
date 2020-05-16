@@ -36,7 +36,6 @@ export class AlarmService {
         return entry.id == id;
       });
     }
-    console.log('hasAlarm', id, alarms);
     return alarms.length > 0;
   }
 

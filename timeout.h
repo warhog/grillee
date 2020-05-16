@@ -16,6 +16,10 @@ template <class T> class Timeout {
             _timeout = timeout;
         }
 
+        T getTimeout() {
+            return _timeout;
+        }
+
         bool operator()() {
             return (_timeoutFunction() >= _nextTimeout);
         }

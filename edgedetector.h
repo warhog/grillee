@@ -67,9 +67,11 @@ template <class T> class EdgeDetector {
          */
         bool operator()(T currentValue, T toValue) {
             _oldOldValue = _oldValue;
-            if (currentValue != _oldValue && currentValue == toValue) {
+            if (currentValue != _oldValue) {
                 _oldValue = currentValue;
-                return true;
+                if (currentValue == toValue) {
+                    return true;
+                }
             }
             return false;
         }
