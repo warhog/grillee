@@ -38,7 +38,8 @@
         "connectingText": "Connecting... please wait...",
         "reconnectText": "Trying to reconnect...",
         "scanningText": "Scanning for devices...",
-        "cannotWriteDataText": "Cannot write data to device ({{msg}})."
+        "cannotWriteDataText": "Cannot write data to device ({{msg}}).",
+        "noConnectionErrorText": "Cannot connect, please select device."
     },
     "util": {
         "pressExitAgainText": "Press again to exit..."

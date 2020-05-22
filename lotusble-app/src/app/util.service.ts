@@ -51,7 +51,7 @@ export class UtilService {
   /**
    * loads the ble device from the storage
    */
-  loadBleDevice(): Promise<BleDevice> {
+  loadBleDeviceSetting(): Promise<BleDevice> {
     return new Promise((resolve, reject) => {
       this.storage.get(STORAGE_KEY_BLE_DEVICE).then(
         (bleDevice: BleDevice) => {
@@ -74,7 +74,7 @@ export class UtilService {
    * store given ble device to storage
    * @param bleDevice 
    */
-  storeBleDevice(bleDevice: BleDevice) {
+  storeBleDeviceSetting(bleDevice: BleDevice) {
     console.log('storing ble device', bleDevice);
     this.storage.set(STORAGE_KEY_BLE_DEVICE, bleDevice);
   }
@@ -82,7 +82,7 @@ export class UtilService {
   /**
    * clear stored ble device from storage
    */
-  clearBleDevice() {
+  clearBleDeviceSetting() {
     this.storage.remove(STORAGE_KEY_BLE_DEVICE);
   }
 

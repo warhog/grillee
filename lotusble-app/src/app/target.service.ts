@@ -6,6 +6,7 @@ import { Subscription, BehaviorSubject } from 'rxjs';
 import { IntervalObservable } from 'rxjs/observable/IntervalObservable';
 import { UtilService } from './util.service';
 import { TranslateService } from '@ngx-translate/core';
+import { NavController } from '@ionic/angular';
 
 const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 const LOTUSBLE_CHARACTERISTIC_ALARM_UUID = '06817906-f5db-4d66-86e4-776e74074cd6';
@@ -39,7 +40,10 @@ export class TargetService {
   private datapoints: Array<ReadAndRegisterData> = [];
   private rssiBehaviorSubject: BehaviorSubject<number> = new BehaviorSubject<number>(0);
 
-  constructor(private ble: BLE, private utilService: UtilService, private translateService: TranslateService) {
+  constructor(private ble: BLE,
+    private utilService: UtilService,
+    private translateService: TranslateService,
+    public navCtrl: NavController) {
 
   }
 
@@ -89,12 +93,29 @@ export class TargetService {
    */
   connect(bleDevice: BleDevice = null, connectedCallback: Function = null) {
     if (!this.connected) {
+      let connectionTimeoutHandle = setTimeout(() => {
+        console.error('connection timeout triggered');
+        this.disconnect();
+        this.utilService.dismissLoadingOverlay();
+        this.utilService.clearBleDeviceSetting();
+        this.translateService.get('target.noConnectionErrorText').subscribe((res: string) => {
+          this.utilService.showToast(res, 3000);
+        });
+        this.navCtrl.navigateRoot(['/home']);
+      }, 30000);
+
       this.translateService.get('target.connectingText').subscribe((res: string) => {
         this.utilService.createLoadingOverlay(res);
         this.bleDevice = bleDevice;
         this.ble.autoConnect(this.bleDevice.id,
-          (peripheral: BlePeripheral) => this.onDeviceConnected(peripheral, connectedCallback),
-          (disconnectData) => this.onConnectionError(disconnectData)
+          (peripheral: BlePeripheral) => {
+            clearTimeout(connectionTimeoutHandle);
+            this.onDeviceConnected(peripheral, connectedCallback);
+          },
+          (disconnectData) => {
+            clearTimeout(connectionTimeoutHandle);
+            this.onConnectionError(disconnectData);
+          }
         );
       });
   } else {
@@ -127,7 +148,7 @@ export class TargetService {
    * @param callbackScanNewDevice 
    */
   loadOrScan(callbackLoaded: Function, callbackScanNewDevice: Function) {
-    this.utilService.loadBleDevice().then((bleDevice: BleDevice) => {
+    this.utilService.loadBleDeviceSetting().then((bleDevice: BleDevice) => {
       console.log('ble device loaded');
       this.bleDevice = bleDevice;
       callbackLoaded && callbackLoaded(this.bleDevice);
@@ -262,7 +283,7 @@ export class TargetService {
     this.connectionLost = false;
     this.connected = true;
 
-    this.utilService.storeBleDevice(this.bleDevice);
+    this.utilService.storeBleDeviceSetting(this.bleDevice);
 
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_FAN_UUID, 'uint8_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_RPM_UUID, 'uint16_t');

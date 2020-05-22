@@ -38,7 +38,8 @@
         "connectingText": "Verbinde... bitte warten...",
         "reconnectText": "Versuche erneut zu verbinden...",
         "scanningText": "Suche nach Geräten...",
-        "cannotWriteDataText": "Kann Daten nicht schreiben ({{msg}})."
+        "cannotWriteDataText": "Kann Daten nicht schreiben ({{msg}}).",
+        "noConnectionErrorText": "Kann nicht verbinden, bitte Gerät auswahlen."
     },
     "util": {
         "pressExitAgainText": "Erneut drücken zum Beenden..."
