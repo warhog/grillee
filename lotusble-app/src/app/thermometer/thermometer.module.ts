@@ -10,6 +10,7 @@ import { ThermometerPage } from './thermometer.page';
 import { SetpointPage } from '../setpoint/setpoint.page';
 import { SetpointPageModule } from '../setpoint/setpoint.module';
 import { ProbePipe } from '../probe.pipe';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   imports: [
@@ -17,7 +18,8 @@ import { ProbePipe } from '../probe.pipe';
     FormsModule,
     IonicModule,
     ThermometerPageRoutingModule,
-    SetpointPageModule
+    SetpointPageModule,
+    TranslateModule.forChild()
   ],
   declarations: [ThermometerPage, ProbePipe],
   entryComponents: [SetpointPage]

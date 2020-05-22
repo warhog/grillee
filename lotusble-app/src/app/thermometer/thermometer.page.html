@@ -4,14 +4,14 @@
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
     <ion-title>
-      LotusBLE
+      {{ 'general.title' | translate }}
     </ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding" [fullscreen]="true">
   <ion-text class="ion-text-center">
-    <h3>Probe 1</h3>
+    <h3>{{ 'thermometer.probe' | translate:{'nr': 1} }}</h3>
     <p>
       <ion-text color="danger" class="temperature">{{ temperatureProbe1 | probe }} </ion-text>
       <ion-text [hidden]="temperatureProbe1 <= -100" class="small" color="success">{{ setpoint1 | probe }}</ion-text>
@@ -22,7 +22,7 @@
       {{getMeatTypeString(1)}}<br />
       <ion-button color="secondary" size="small" (click)="onSetSetpoint1()">
         <ion-icon slot="start" name="thermometer"></ion-icon>
-        Change
+        {{ 'thermometer.changeButtonText' | translate }}
       </ion-button>
     </p>
   </ion-text>
@@ -30,7 +30,7 @@
   <p>&nbsp;</p>
   
   <ion-text class="ion-text-center">
-    <h3>Probe 2</h3>
+    <h3>{{ 'thermometer.probe' | translate:{'nr': 2} }}</h3>
     <p>
       <ion-text color="danger" class="temperature">{{ temperatureProbe2 | probe }} </ion-text>
       <ion-text [hidden]="temperatureProbe2 <= -100" class="small" color="success">{{ setpoint2 | probe }}</ion-text>
@@ -41,7 +41,7 @@
       {{getMeatTypeString(2)}}<br />
       <ion-button color="secondary" size="small" (click)="onSetSetpoint2()">
         <ion-icon slot="start" name="thermometer"></ion-icon>
-        Change
+        {{ 'thermometer.changeButtonText' | translate }}
       </ion-button>
     </p>
   </ion-text>
@@ -56,17 +56,17 @@
   <ion-text class="ion-text-center" color="medium">
     <p>
       <ion-icon name="options-outline"></ion-icon>
-      <span style="vertical-align: top;"> {{ fanSpeed }} % ({{ fanRpm }} rpm) | </span>
+      <span style="vertical-align: top;"> {{ fanSpeed }} % ({{ fanRpm }} {{ 'thermometer.rpm' | translate }}) | </span>
       <ion-icon [name]="getBatteryIcon()"></ion-icon>
-      <span style="vertical-align: top;"> {{ battery | number:'1.1-1' }} V | </span>
+      <span style="vertical-align: top;"> {{ battery | number:'1.1-1' }} {{ 'thermometer.volt' | translate }} | </span>
       <ion-icon name="cellular-outline"></ion-icon>
-      <span style="vertical-align: top;"> {{ rssi }} db</span>
+      <span style="vertical-align: top;"> {{ 'thermometer.rssiStatus' | translate:{'rssi': rssi} }}</span>
     </p>
   </ion-text>
 </ion-content>
 
 <ion-footer [hidden]="!hasAlarmFooter()">
   <ion-toolbar [color]="getAlarmFooterColor()" class="ion-text-center">
-    <p>ALARM</p>
+    <p>{{ 'thermometer.alarmTextUppercase' | translate }}</p>
   </ion-toolbar>
 </ion-footer>

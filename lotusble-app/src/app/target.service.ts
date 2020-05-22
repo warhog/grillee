@@ -5,6 +5,7 @@ import { BlePeripheral } from './models/bleperipheral';
 import { Subscription, BehaviorSubject } from 'rxjs';
 import { IntervalObservable } from 'rxjs/observable/IntervalObservable';
 import { UtilService } from './util.service';
+import { TranslateService } from '@ngx-translate/core';
 
 const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 const LOTUSBLE_CHARACTERISTIC_ALARM_UUID = '06817906-f5db-4d66-86e4-776e74074cd6';
@@ -38,7 +39,7 @@ export class TargetService {
   private datapoints: Array<ReadAndRegisterData> = [];
   private rssiBehaviorSubject: BehaviorSubject<number> = new BehaviorSubject<number>(0);
 
-  constructor(private ble: BLE, private utilService: UtilService) {
+  constructor(private ble: BLE, private utilService: UtilService, private translateService: TranslateService) {
 
   }
 
@@ -88,13 +89,15 @@ export class TargetService {
    */
   connect(bleDevice: BleDevice = null, connectedCallback: Function = null) {
     if (!this.connected) {
-      this.utilService.createLoadingOverlay('Connecting... please wait...');
-      this.bleDevice = bleDevice;
-      this.ble.autoConnect(this.bleDevice.id,
-        (peripheral: BlePeripheral) => this.onDeviceConnected(peripheral, connectedCallback),
-        (disconnectData) => this.onConnectionError(disconnectData)
-      );
-    } else {
+      this.translateService.get('target.connectingText').subscribe((res: string) => {
+        this.utilService.createLoadingOverlay(res);
+        this.bleDevice = bleDevice;
+        this.ble.autoConnect(this.bleDevice.id,
+          (peripheral: BlePeripheral) => this.onDeviceConnected(peripheral, connectedCallback),
+          (disconnectData) => this.onConnectionError(disconnectData)
+        );
+      });
+  } else {
       console.log('already connected');
     }
   }
@@ -131,7 +134,9 @@ export class TargetService {
     },
     (error) => {
       console.log('no ble device, start scanning');
-      this.utilService.showToast('Scanning for devices...', 1000);
+      this.translateService.get('target.scanningText').subscribe((res: string) => {
+        this.utilService.showToast(res, 1000);
+      });
       this.scan(callbackScanNewDevice);
     });
   }
@@ -350,7 +355,9 @@ export class TargetService {
         console.log('ble write number result: ', result);
       }).catch((msg) => {
         console.error('cannot write ble number data: ', msg);
-        this.utilService.showToast('Cannot write data to device (' + msg + ').', 3000);
+        this.translateService.get('target.cannotWriteDataText', { 'msg': msg }).subscribe((res: string) => {
+          this.utilService.showToast(res, 3000);
+        });
       });
   }
   sendBleDataBoolean(characteristic: string, data: boolean) {
@@ -359,7 +366,9 @@ export class TargetService {
         console.log('ble write bool result: ', result);
       }).catch((msg) => {
         console.error('cannot write ble bool data: ', msg);
-        this.utilService.showToast('Cannot write data to device (' + msg + ').', 3000);
+        this.translateService.get('target.cannotWriteDataText', { 'msg': msg }).subscribe((res: string) => {
+          this.utilService.showToast(res, 3000);
+        });
       });
   }
 
@@ -488,7 +497,9 @@ export class TargetService {
     if (this.connected) {
       // if we were connected before try to reconnect
       console.info('connection lost, trying to reconnect');
-      this.utilService.createLoadingOverlay('Trying to reconnect...');
+      this.translateService.get('target.reconnectText').subscribe((res: string) => {
+        this.utilService.createLoadingOverlay(res);
+      });
     }
   }
 

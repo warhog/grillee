@@ -11,6 +11,7 @@ import { SensorType } from '../sensor-type.enum';
 import { SensorTypeService } from '../sensor-type.service';
 import { TargetService } from '../target.service';
 import { UtilService } from '../util.service';
+import { TranslateService } from '@ngx-translate/core';
 
 const MIN_FAN_RPM = 300;
 const ALARM_ID_FAN = 1;
@@ -31,8 +32,8 @@ export class ThermometerPage implements OnInit {
   private subscriptions: Array<Subscription> = [];
 
   // used for modal setpoint dialog
-  private meatTypeTemperature1: MeatTypeTemperature = { meatTypeId: '', name: '', temperature: 100 };
-  private meatTypeTemperature2: MeatTypeTemperature = { meatTypeId: '', name: '', temperature: 100 };
+  private meatTypeTemperature1: MeatTypeTemperature = { id: '', meatTypeId: '', name: '', temperature: 100 };
+  private meatTypeTemperature2: MeatTypeTemperature = { id: '', meatTypeId: '', name: '', temperature: 100 };
 
   private _fanRpm: number = 0;
   private _fanSpeed: number = 0;
@@ -52,6 +53,7 @@ export class ThermometerPage implements OnInit {
     private sensorTypeService: SensorTypeService,
     private targetService: TargetService,
     private utilService: UtilService,
+    private translateService: TranslateService,
     private ngZone: NgZone) {
       this.meatTypeTemperature1 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
       this.meatTypeTemperature2 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
@@ -217,23 +219,31 @@ export class ThermometerPage implements OnInit {
     console.log('handle alarm method');
     if (this.fanRpm < MIN_FAN_RPM) {
       console.log('rpm alarm');
-      this.alarmService.createAlarm(ALARM_ID_FAN, 'Fan speed < ' + MIN_FAN_RPM + ' rpm', (alarmId: number) => {
-        this.targetService.setAlarmAck();
+      this.translateService.get('alarm.minRpmText', {minFanRpm: MIN_FAN_RPM}).subscribe((res: string) => {
+        this.alarmService.createAlarm(ALARM_ID_FAN,  res, (alarmId: number) => {
+          this.targetService.setAlarmAck();
+        });
       });
     } else if (this.battery < 4.5) {
       console.log('battery alarm');
-      this.alarmService.createAlarm(ALARM_ID_BATTERY, 'Low battery voltage', (alarmId: number) => {
-        this.targetService.setAlarmAck();
+      this.translateService.get('alarm.lowBatteryText').subscribe((res: string) => {
+          this.alarmService.createAlarm(ALARM_ID_BATTERY, res, (alarmId: number) => {
+          this.targetService.setAlarmAck();
+        });
       });
     } else if (this.temperatureProbe1 >= this.setpoint1) {
       console.log('temperature1 >= setpoint1');
-      this.alarmService.createAlarm(ALARM_ID_PROBE1, 'Probe 1 reached set temperature', (alarmId: number) => {
-        this.targetService.setAlarmAck();
+      this.translateService.get('alarm.probeReachedSetpoint', {probeNr: 1}).subscribe((res: string) => {
+        this.alarmService.createAlarm(ALARM_ID_PROBE1, res, (alarmId: number) => {
+          this.targetService.setAlarmAck();
+        });
       });
     } else if (this.temperatureProbe2 >= this.setpoint2) {
       console.log('temperature2 >= setpoint2');
-      this.alarmService.createAlarm(ALARM_ID_PROBE2, 'Probe 2 reached set temperature', (alarmId: number) => {
-        this.targetService.setAlarmAck();
+      this.translateService.get('alarm.probeReachedSetpoint', {probeNr: 2}).subscribe((res: string) => {
+        this.alarmService.createAlarm(ALARM_ID_PROBE2, res, (alarmId: number) => {
+          this.targetService.setAlarmAck();
+        });
       });
     } else {
       console.error('no alarm?');
@@ -252,14 +262,19 @@ export class ThermometerPage implements OnInit {
     this.subscriptions.push(IntervalObservable.create(10 * 1000).subscribe(() => {
       if (this.targetService.isConnected() && this.targetService.isConnectionLost()) {
         this.audioService.play('beep');
-        this.alarmService.createAlarm(ALARM_ID_LOST_CONNECTION, 'Lost connection to LotusBLE');
+        this.translateService.get('alarm.lostConnectionText').subscribe((res: string) => {
+          this.alarmService.createAlarm(ALARM_ID_LOST_CONNECTION, res);
+        });
       }
     }));
 
     this.backgroundMode.enable();
-    this.backgroundMode.setDefaults({
-      'title': 'LotusBLE',
-      'text': 'Receive values from bluetooth device in background.'
+    this.translateService.get(['general.title', 'general.backgroundServiceDescription']).subscribe((res: string) => {
+        this.backgroundMode.setDefaults({
+        'title': res['general.title'],
+        'text': res['general.backgroundServiceDescription'],
+        'resume': true
+      });
     });
 
     this.backgroundMode.on('activate').subscribe(() => {

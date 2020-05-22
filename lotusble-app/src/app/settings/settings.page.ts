@@ -4,6 +4,7 @@ import { SensorTypeService } from '../sensor-type.service';
 import { UtilService } from '../util.service';
 import { TargetService } from '../target.service';
 import { NavController } from '@ionic/angular';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-settings',
@@ -20,7 +21,8 @@ export class SettingsPage implements OnInit {
   constructor(private sensorTypeService: SensorTypeService,
     private utilService: UtilService,
     private targetService: TargetService,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private translateService: TranslateService,
     ) {
     this.sensorTypes = sensorTypeService.getSensorTypeModels();
     this.selectedSensorType1 = sensorTypeService.getSensorTypeModelByIndex(0);
@@ -37,7 +39,7 @@ export class SettingsPage implements OnInit {
     }
     this.utilService.backButton();
 
-    this.fahrenheit = this.utilService.getTemperatureAsFahrenheit();
+    this.fahrenheit = this.utilService.getTemperatureAsFahrenheitSettingFromCache();
     this.selectedSensorType1 = this.sensorTypeService.getSensorTypeModelByIndex(this.targetService.readSensorType1())
     this.selectedSensorType2 = this.sensorTypeService.getSensorTypeModelByIndex(this.targetService.readSensorType2())
     
@@ -45,7 +47,7 @@ export class SettingsPage implements OnInit {
 
   onChangeTemperatureAsFahrenheit() {
     console.log('store temperature as fahrenheit', this.fahrenheit);
-    this.utilService.storeTemperatureAsFahrenheit(this.fahrenheit);
+    this.utilService.storeTemperatureAsFahrenheitSetting(this.fahrenheit);
   }
 
   onChangeSensorType(id: number) {

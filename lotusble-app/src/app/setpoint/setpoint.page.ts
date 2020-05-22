@@ -32,6 +32,7 @@ export class SetpointPage implements OnInit {
     }
     console.log('input meatTemperature', this.meatTypeTemperature);
     this.selectedMeatType = this.meatTemperatureService.getMeatTypeById(this.meatTypeTemperature.meatTypeId);
+    this.selectedTemperature = this.meatTemperatureService.getMeatTypeTemperatureById(this.meatTypeTemperature.id);
     this.onChangeMeatType(this.selectedMeatType);
     console.log('selected meat start', this.selectedMeatType);
     console.log('selected temp start', this.selectedTemperature);
@@ -57,19 +58,26 @@ export class SetpointPage implements OnInit {
       console.log('selectedMeatTemps', selectedMeatTemps);
       this.ngZone.run(() => {
         selectedMeatTemps.map((entry) => {
-          this.meatTemperatures.push({ name: entry.name, temperature: entry.temperature });
+          this.meatTemperatures.push({ id: entry.id, name: entry.name, temperature: entry.temperature });
         });
         console.log('meatTemperatures', this.meatTemperatures);
+        console.log('current selectedtemperature:', this.selectedTemperature);
         this.selectedTemperature = this.meatTemperatureService.getMaxTemperatureEntryForMeatType(selection.id);
         console.log('selectedTemperature', this.selectedTemperature);
+        this.customTemperature = this.selectedTemperature.temperature;
       });
     } else {
       console.info('no predefined temperature found for selection ', selection);
     }
   }
+  
+  onChangeMeatTypeTemperature(selection: MeatTypeTemperature) {
+    this.customTemperature = this.selectedTemperature.temperature;
+  }
 
   dismissModal() {
     let meatTypeTemperature: MeatTypeTemperature = {
+      id: this.selectedTemperature.id,
       meatTypeId: this.selectedMeatType.id,
       name: this.selectedTemperature.name,
       temperature: this.selectedTemperature.temperature
