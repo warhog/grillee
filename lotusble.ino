@@ -18,7 +18,10 @@
 
 #define DEBUG
 
-const gpio_num_t PIN_FAN = GPIO_NUM_17;
+// TODO LED support
+// TODO push button support webupdate
+// TODO webupdate
+const gpio_num_t PIN_FAN = GPIO_NUM_26;
 const gpio_num_t PIN_RPM = GPIO_NUM_27;
 const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_16;
 const gpio_num_t PIN_ADC_CS = GPIO_NUM_5;

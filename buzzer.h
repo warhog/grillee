@@ -46,7 +46,7 @@ class Buzzer {
                 } else if (_state == 1) {
                     _timeout.setTimeout(250);
                 } else if (_state == 3) {
-                    _timeout.setTimeout(1000);
+                    _timeout.setTimeout(2500);
                 }
                 
                 _timeout.reset();
