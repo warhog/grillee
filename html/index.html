@@ -1,0 +1,21 @@
+<br />
+<a class='button' href='/reset'>restart device</a><br />
+
+<br />
+<h2>data</h2>
+looptime: %LOOPTIME% &micro;s
+
+
+<h2>maintenance</h2>
+
+<h3>firmware update</h3>
+select .bin file to flash and press update to start the over the air update.<br />
+<b>attention:</b> do not interrupt power supply, else you might need to reflash using the serial adapter!<br />
+<form method='POST' action='#' enctype='multipart/form-data' id='upload_form'>
+    <input type='file' id='update' name='update' onchange='uploadChange();'/>
+    <input type='submit' class='button' value='update' />
+</form>
+
+<h3>factory defaults</h3>
+<b>attention:</b> all data is reset to factory defaults except voltage reference<br />
+<a class='button button-danger' href='/factorydefaults'>restore factory defaults</a>

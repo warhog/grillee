@@ -4,7 +4,7 @@
 #include "adc_mcp3208.h"
 #include "sensortype.h"
 
-#define DEBUG
+//#define DEBUG
 
 namespace measurement {
 

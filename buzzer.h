@@ -3,18 +3,17 @@
 #include <Arduino.h>
 #include "timeout.h"
 #include "toggle.h"
+#include "ledc.h"
 
-#define DEBUG
+//#define DEBUG
 
 namespace util {
-
-const uint8_t BUZZER_LEDC_CHANNEL = 1;
 
 class Buzzer {
     public:
         Buzzer(gpio_num_t pin) {
-            ledcSetup(BUZZER_LEDC_CHANNEL , 2000, 8);
-            ledcAttachPin(pin, BUZZER_LEDC_CHANNEL);
+            ledcSetup(util::LEDC_CHANNEL_BUZZER , 2000, 8);
+            ledcAttachPin(pin, util::LEDC_CHANNEL_BUZZER);
         }
 
         void setIntervalTime(uint16_t intervalMs) {
@@ -32,7 +31,7 @@ class Buzzer {
 
         void disable() {
             _enabled = false;
-            ledcWriteTone(BUZZER_LEDC_CHANNEL, 0);
+            ledcWriteTone(util::LEDC_CHANNEL_BUZZER, 0);
         }
 
         void update() {
@@ -54,9 +53,9 @@ class Buzzer {
                 Serial.println("buzzer timeout triggered");
 #endif
                 if (_state == 0 || _state == 2) {
-                    ledcWriteNote(BUZZER_LEDC_CHANNEL, NOTE_A, 6);
+                    ledcWriteNote(util::LEDC_CHANNEL_BUZZER, NOTE_A, 6);
                 } else {
-                    ledcWriteTone(BUZZER_LEDC_CHANNEL, 0);
+                    ledcWriteTone(util::LEDC_CHANNEL_BUZZER, 0);
                 }
             }
         }

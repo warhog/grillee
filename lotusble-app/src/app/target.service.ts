@@ -39,6 +39,7 @@ export class TargetService {
   private intervalRssi: Subscription = null;
   private datapoints: Array<ReadAndRegisterData> = [];
   private rssiBehaviorSubject: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  private connectionTimeoutHandle: any = null;
 
   constructor(private ble: BLE,
     private utilService: UtilService,
@@ -93,9 +94,35 @@ export class TargetService {
    */
   connect(bleDevice: BleDevice = null, connectedCallback: Function = null) {
     if (!this.connected) {
-      let connectionTimeoutHandle = setTimeout(() => {
+      this.startTimeoutTimer();
+      this.translateService.get('target.connectingText').subscribe((res: string) => {
+        this.utilService.createLoadingOverlay(res);
+        this.bleDevice = bleDevice;
+        this.ble.autoConnect(this.bleDevice.id,
+          (peripheral: BlePeripheral) => {
+            this.stopTimeoutTimer();
+            this.onDeviceConnected(peripheral, connectedCallback);
+          },
+          (disconnectData: string) => {
+            this.stopTimeoutTimer();
+            this.onConnectionError(disconnectData);
+          }
+        );
+      });
+  } else {
+      console.log('already connected');
+    }
+  }
+
+  /**
+   * start the connection timeout timer to prevent unlimited connection tries
+   */
+  startTimeoutTimer() {
+    if (this.connectionTimeoutHandle == null) {
+      this.connectionTimeoutHandle = setTimeout(() => {
         console.error('connection timeout triggered');
         this.disconnect();
+        this.connectionTimeoutHandle = null;
         this.utilService.dismissLoadingOverlay();
         this.utilService.clearBleDeviceSetting();
         this.translateService.get('target.noConnectionErrorText').subscribe((res: string) => {
@@ -103,23 +130,20 @@ export class TargetService {
         });
         this.navCtrl.navigateRoot(['/home']);
       }, 30000);
+    } else {
+      console.log('a connection timout timer is already running');
+    }
+  }
 
-      this.translateService.get('target.connectingText').subscribe((res: string) => {
-        this.utilService.createLoadingOverlay(res);
-        this.bleDevice = bleDevice;
-        this.ble.autoConnect(this.bleDevice.id,
-          (peripheral: BlePeripheral) => {
-            clearTimeout(connectionTimeoutHandle);
-            this.onDeviceConnected(peripheral, connectedCallback);
-          },
-          (disconnectData) => {
-            clearTimeout(connectionTimeoutHandle);
-            this.onConnectionError(disconnectData);
-          }
-        );
-      });
-  } else {
-      console.log('already connected');
+  /**
+   * stop the connection timeout timer (e.g. successful connected, aborting connect, ...)
+   */
+  stopTimeoutTimer() {
+    if (this.connectionTimeoutHandle != null) {
+      clearTimeout(this.connectionTimeoutHandle);
+      this.connectionTimeoutHandle = null;
+    } else {
+      console.log('connection timeout handle is null');
     }
   }
 
@@ -517,6 +541,7 @@ export class TargetService {
     this.utilService.dismissLoadingOverlay();
     if (this.connected) {
       // if we were connected before try to reconnect
+      this.startTimeoutTimer();
       console.info('connection lost, trying to reconnect');
       this.translateService.get('target.reconnectText').subscribe((res: string) => {
         this.utilService.createLoadingOverlay(res);

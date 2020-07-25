@@ -2,7 +2,7 @@
 
 namespace util {
 
-#define DEBUG
+//#define DEBUG
 
 const char* CONFIG_VERSION = "100";
 const unsigned int CONFIG_START = 32;

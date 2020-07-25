@@ -15,16 +15,22 @@
 #include "fan.h"
 #include "storage.h"
 #include "buzzer.h"
+#include "ledc.h"
+#include "led.h"
+#include "wifiwebserver.h"
+#include "wifiap.h"
+#include "version.h"
 
 #define DEBUG
 
-// TODO LED support
-// TODO push button support webupdate
-// TODO webupdate
 const gpio_num_t PIN_FAN = GPIO_NUM_26;
 const gpio_num_t PIN_RPM = GPIO_NUM_27;
 const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_16;
 const gpio_num_t PIN_ADC_CS = GPIO_NUM_5;
+const gpio_num_t PIN_LED_R = GPIO_NUM_32;
+const gpio_num_t PIN_LED_G = GPIO_NUM_33;
+const gpio_num_t PIN_LED_B = GPIO_NUM_25;
+const gpio_num_t PIN_WEB_UPDATE = GPIO_NUM_34;
 
 const MCP3208::Channel ADC_CHANNEL_BATTERY = MCP3208::Channel::SINGLE_7;
 const MCP3208::Channel ADC_CHANNEL_POTI = MCP3208::Channel::SINGLE_6;
@@ -38,6 +44,9 @@ bool controlByBle = false;
 bool alarmAcked{false};
 bool alarmFan{false};
 bool alarmBattery{false};
+
+unsigned long loopTime = 0L;
+unsigned long lastLoopTimeRun = 0L;
 
 EdgeDetector<bool> alarmChanged(false);
 EdgeDetector<bool> alarmFanChanged(false);
@@ -56,6 +65,9 @@ EdgeDetector<int16_t> probe1Changed(0, 1);
 EdgeDetector<int16_t> probe2Changed(0, 1);
 
 BleServer bleServer;
+util::Led ledR(PIN_LED_R, util::LEDC_CHANNEL_LED_R);
+util::Led ledG(PIN_LED_G, util::LEDC_CHANNEL_LED_G);
+util::Led ledB(PIN_LED_B, util::LEDC_CHANNEL_LED_B);
 
 util::Adc_MCP3208 adcMcp3208;
 util::Storage storage;
@@ -64,6 +76,10 @@ util::Battery battery(&adcMcp3208, ADC_CHANNEL_BATTERY);
 
 measurement::Probe probe1(&adcMcp3208, ADC_CHANNEL_PROBE0, SensorType::UNKNOWN);
 measurement::Probe probe2(&adcMcp3208, ADC_CHANNEL_PROBE1, SensorType::UNKNOWN);
+
+comm::WifiWebServer wifiWebServer(&storage, &loopTime);
+comm::WifiAp wifiAp;
+
 
 void rpmIsr();
 ventilation::Fan fan(PIN_FAN, PIN_RPM, &rpmIsr);
@@ -84,6 +100,7 @@ void controlByBleCallback(bool control) {
     Serial.printf("set control by ble: %d\n", control);
 #endif
     controlByBle = control;
+    updateLed();
 }
 
 /**
@@ -146,11 +163,48 @@ void alarmWriteCallback() {
     buzzer.disable();
 }
 
+/**
+ * returns the status of all single (collective) alarm states
+ **/
+bool getCollectiveAlarmState() {
+    return alarmBattery | alarmFan | probe1.isAlarm() | probe2.isAlarm();
+}
+
+/**
+ * update the led functions
+ **/
+void updateLed() {
+    if (getCollectiveAlarmState()) {
+        ledR.setBreath(250);
+        ledG.setOff();
+        ledB.setOff();
+    } else if (controlByBle) {
+        ledR.setOff();
+        ledG.setOn();
+        ledG.setBrightness16(static_cast<uint16_t>(static_cast<float>(fan.getFanPercent()) * 40.95));
+        ledB.setOff();
+    } else {
+        ledR.setOff();
+        ledG.setOff();
+        ledB.setOn();
+        ledB.setBrightness16(static_cast<uint16_t>(static_cast<float>(fan.getFanPercent()) * 40.95));
+    }
+}
+
+/**
+ * arduino setup function
+ **/
 void setup() {
 #ifdef DEBUG
     Serial.begin(115200);
     Serial.println("startup");
+    Serial.println("version: " VERSION);
+    Serial.println("build time: " VERSION_DATETIME);
+    Serial.println("commit: " VERSION_COMMIT);
 #endif
+    ledR.setOff();
+    ledG.setOff();
+    ledB.setOff();
 
 #ifdef DEBUG
 	Serial.println(F("reading config from eeprom"));
@@ -163,6 +217,25 @@ void setup() {
 #endif
     storage.load();
     
+    // in debug mode always enable webupdate feature
+#ifndef DEBUG
+	pinMode(PIN_WEB_UPDATE, INPUT_PULLUP);
+	if (digitalRead(PIN_WEB_UPDATE) == LOW) {
+#endif
+#ifdef DEBUG
+		Serial.println(F("force wifi ap mode"));
+#endif
+		if (!wifiAp.connect()) {
+#ifdef DEBUG
+			Serial.println(F("cannot enable wifi ap mode"));
+#endif
+		} else {
+        	wifiWebServer.begin();
+	    }
+#ifndef DEBUG
+	}
+#endif
+
     uint16_t setpoint1 = storage.getSetpoint1();
     probe1.setSensorType(storage.getSensorType1());
     probe1.setSetpoint(setpoint1);
@@ -196,8 +269,13 @@ void setup() {
 #ifdef DEBUG
     Serial.println("init done");
 #endif
+
+    updateLed();
 }
 
+/**
+ * arduino loop (main) function
+ **/
 void loop() {
 
     if (probe1Changed(probe1.update())) {
@@ -219,7 +297,6 @@ void loop() {
         if (fan.getFanPercent() != fanPercentFiltered) {
             fan.setFanPercent(fanPercentFiltered);
         }
-        
     }
 
     fan.update();
@@ -230,6 +307,7 @@ void loop() {
     uint8_t fanPercent = fan.getFanPercent();
     if (fanPercentChanged(fanPercent)) {
         bleServer.setFan(fanPercent);
+        updateLed();
     }
     alarmFan = fan.getFanAlarm();
 
@@ -244,24 +322,32 @@ void loop() {
 
     buzzer.update();
 
+	if (wifiWebServer.isConnected()) {
+		// handle the wifi webserver data
+		wifiWebServer.handle();
+	}
+
+    ledR.update();
+    ledG.update();
+    ledB.update();
+
     // alarms have to be handled last to make sure notification for sensor changes comes before alarm notification
     // TODO should be improved
-    // test if alarm has changed to true
-    bool alarm = 0;
+    // test if any alarm has changed to true
+    bool anyAlarmTriggered = false;
     if (alarmBatteryChanged(alarmBattery, true)) {
-        alarm = true;
+        anyAlarmTriggered = true;
     }
     if (alarmFanChanged(alarmFan)) {
-        alarm = true;
+        anyAlarmTriggered = true;
     }
     if (alarmProbe1Changed(probe1.isAlarm(), true)) {
-        alarm = true;
+        anyAlarmTriggered = true;
     }
-    Serial.flush();
     if (alarmProbe2Changed(probe2.isAlarm(), true)) {
-        alarm = true;
+        anyAlarmTriggered = true;
     }
-    if (alarm) {
+    if (anyAlarmTriggered) {
         // new alarm triggered
 #ifdef DEBUG
         Serial.println("sending alarm");
@@ -269,18 +355,21 @@ void loop() {
         alarmAcked = false;
         bleServer.setAlarm(true);
         buzzer.enable();
+        updateLed();
     }
 
-    bool alarms = alarmBattery | alarmFan | probe1.isAlarm() | probe2.isAlarm();
-    alarmChanged.lambda(alarms, [](bool newValue, bool oldValue) {
+    alarmChanged.lambda(getCollectiveAlarmState(), [](bool newValue, bool oldValue) {
         if (!newValue) {
-            // changed alarm back to normal
+            // no alarm anymore and at least one alarm changed from alarm to normal
 #ifdef DEBUG
             Serial.println("sending alarm disable");
 #endif
             bleServer.setAlarm(false);
             buzzer.disable();
         }
+        updateLed();
     });
 
+	loopTime = micros() - lastLoopTimeRun;
+	lastLoopTimeRun = micros();
 }

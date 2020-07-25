@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#define DEBUG
+//#define DEBUG
 const unsigned int NR_OF_SENSORTYPES = 15;
 
 // values and type names thankfully taken from wlanthermo project

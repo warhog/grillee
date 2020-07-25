@@ -4,6 +4,7 @@
 #include <MedianFilterLib.h>
 
 #include "timeout.h"
+#include "ledc.h"
 
 //#define DEBUG
 
@@ -32,10 +33,10 @@ namespace ventilation {
 
                 // set pwm generator for fan using ledcontroller
                 // set to 25khz and 12bit resolution
-                ledcSetup(0, 25000, 12);
-                ledcAttachPin(pinFanPwm, 0);
+                ledcSetup(util::LEDC_CHANNEL_FAN, 25000, 12);
+                ledcAttachPin(pinFanPwm, util::LEDC_CHANNEL_FAN);
                 // set to full speed at initialization
-                ledcWrite(0, 4095);
+                ledcWrite(util::LEDC_CHANNEL_FAN, 4095);
 
                 // setup pin for rpm input
                 pinMode(_pinFanRpm, INPUT_PULLUP);
@@ -78,7 +79,7 @@ namespace ventilation {
 #ifdef DEBUG
                     Serial.printf("update fan, %d -> %d (raw: %d)\n", _fanPercentChanged.getOldValue(), _fanPercent, fanSpeedRaw);
 #endif
-                    ledcWrite(0, fanSpeedRaw);
+                    ledcWrite(util::LEDC_CHANNEL_FAN, fanSpeedRaw);
                 }
             }
 

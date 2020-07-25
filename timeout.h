@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Arduino.h>
+
 template <class T> class Timeout {
     public:
         Timeout(T timeout, T (*timeoutFunction)(), bool fireOnStart = false) : _timeout(timeout), _timeoutFunction(timeoutFunction), _nextTimeout(0) {
@@ -14,6 +16,11 @@ template <class T> class Timeout {
 
         void setTimeout(T timeout) {
             _timeout = timeout;
+            reset();
+        }
+
+        T getNextTimeout() {
+            return _nextTimeout;
         }
 
         T getTimeout() {
