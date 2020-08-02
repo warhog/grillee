@@ -39,10 +39,6 @@ class Buzzer {
 
         void update() {
             if (_enabled && _timeout()) {
-                _state++;
-                if (_state > 3) {
-                    _state = 0;
-                }
                 if (_state == 0 || _state == 2) {
                     _timeout.setTimeout(125);
                 } else if (_state == 1) {
@@ -59,6 +55,10 @@ class Buzzer {
                     ledcWriteNote(util::LEDC_CHANNEL_BUZZER, NOTE_A, 6);
                 } else {
                     ledcWriteTone(util::LEDC_CHANNEL_BUZZER, 0);
+                }
+                _state++;
+                if (_state > 3) {
+                    _state = 0;
                 }
             }
         }
