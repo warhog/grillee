@@ -19,8 +19,8 @@ namespace util {
                 digitalWrite(_pinLed, LOW);
 
                 // set pwm generator for ledcontroller
-                // set to 25khz and 12bit resolution
-                ledcSetup(_channel, 25000, 12);
+                // set to 5khz and 12bit resolution
+                ledcSetup(_channel, 5000, 12);
                 ledcAttachPin(_pinLed, _channel);
                 // set to full speed at initialization
                 ledcWrite(_channel, 4095);

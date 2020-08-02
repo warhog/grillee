@@ -7,6 +7,8 @@
 #include "ledc.h"
 
 //#define DEBUG
+#define LEDC_FAN_BIT 8
+#define LEDC_FAN_MAX 255
 
 namespace ventilation {
 
@@ -32,11 +34,11 @@ namespace ventilation {
                 digitalWrite(pinFanPwm, LOW);
 
                 // set pwm generator for fan using ledcontroller
-                // set to 25khz and 12bit resolution
-                ledcSetup(util::LEDC_CHANNEL_FAN, 25000, 12);
+                // set to 25khz and 8bit resolution
+                ledcSetup(util::LEDC_CHANNEL_FAN, 25000, LEDC_FAN_BIT);
                 ledcAttachPin(pinFanPwm, util::LEDC_CHANNEL_FAN);
                 // set to full speed at initialization
-                ledcWrite(util::LEDC_CHANNEL_FAN, 4095);
+                ledcWrite(util::LEDC_CHANNEL_FAN, LEDC_FAN_MAX);
 
                 // setup pin for rpm input
                 pinMode(_pinFanRpm, INPUT_PULLUP);
@@ -49,7 +51,6 @@ namespace ventilation {
                     _timeoutRpm.reset();
                     _rpmRaw = ((_ticksRpm * RPM_CALCULATION_TIMEFRAME) / PULSES_PER_ROTATION);
                     _ticksRpm = 0;
-                    //_rpmFiltered = static_cast<unsigned int>(static_cast<float>(_rpmRaw) * 0.25 + static_cast<float>(_rpmFiltered) * 0.75);
                     _rpmFiltered = _medianFilterRpm->AddValue(_rpmRaw);
 
                     if (!_rpmAlarm && _rpmFiltered < MIN_RPM) {
@@ -73,9 +74,9 @@ namespace ventilation {
                 }
 
                 if (_fanPercentChanged(_fanPercent)) {
-                    uint16_t fanSpeedRaw = static_cast<unsigned int>(static_cast<float>(_fanPercent) * 40.96);
+                    uint16_t fanSpeedRaw = static_cast<unsigned int>(static_cast<float>(_fanPercent) * (LEDC_FAN_MAX / 100.0));
                     // minimum fanspeed is 10%
-                    fanSpeedRaw = constrain(fanSpeedRaw, 409, 4096);
+                    fanSpeedRaw = constrain(fanSpeedRaw, LEDC_FAN_MAX / 10.0, LEDC_FAN_MAX);
 #ifdef DEBUG
                     Serial.printf("update fan, %d -> %d (raw: %d)\n", _fanPercentChanged.getOldValue(), _fanPercent, fanSpeedRaw);
 #endif

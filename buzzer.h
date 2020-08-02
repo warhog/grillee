@@ -12,7 +12,9 @@ namespace util {
 class Buzzer {
     public:
         Buzzer(gpio_num_t pin) {
-            ledcSetup(util::LEDC_CHANNEL_BUZZER , 2000, 8);
+            // set pwm generator for ledcontroller
+            // set to 2khz and 8bit resolution
+            ledcSetup(util::LEDC_CHANNEL_BUZZER, 2000, 8);
             ledcAttachPin(pin, util::LEDC_CHANNEL_BUZZER);
         }
 
@@ -27,6 +29,7 @@ class Buzzer {
 
         void enable() {
             _enabled = true;
+            _state = 0;
         }
 
         void disable() {
