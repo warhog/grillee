@@ -12,7 +12,7 @@ template <class T> class EdgeDetector {
          * Tests if currentValue has changed since the last call to this function.
          * 
          * @param [in] currentValue the new value to do an edge detection for
-         * @return Boolean true if currentValue has changed
+         * @return bool true if currentValue has changed
          */
         bool operator()(T currentValue) {
             _oldOldValue = _oldValue;
@@ -37,7 +37,7 @@ template <class T> class EdgeDetector {
          * 
          * @param [in] currentValue the new value to do an edge detection for
          * @param [in] lambda the function to execute on value changes
-         * @return Boolean true if currentValue has changed
+         * @return bool true if currentValue has changed
          */
         bool lambda(T currentValue, std::function<void(T, T)> lambda) {
             _oldOldValue = _oldValue;
@@ -63,7 +63,7 @@ template <class T> class EdgeDetector {
          * 
          * @param [in] currentValue the new value to do an edge detection for
          * @param [in] toValue the value currentValue has to change to to trigger
-         * @return Boolean true if currentValue has changed to toValue
+         * @return bool true if currentValue has changed to toValue
          */
         bool operator()(T currentValue, T toValue) {
             _oldOldValue = _oldValue;

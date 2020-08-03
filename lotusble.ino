@@ -20,6 +20,7 @@
 #include "wifiwebserver.h"
 #include "wifiap.h"
 #include "version.h"
+#include "alarm.h"
 
 #define DEBUG
 
@@ -40,19 +41,8 @@ const MCP3208::Channel ADC_CHANNEL_PROBE1 = MCP3208::Channel::SINGLE_1;
 // wether device is controlled by bluetooth device or poti
 bool controlByBle = false;
 
-// alarm states
-bool alarmAcked{false};
-bool alarmFan{false};
-bool alarmBattery{false};
-
 unsigned long loopTime = 0L;
 unsigned long lastLoopTimeRun = 0L;
-
-EdgeDetector<bool> alarmChanged(false);
-EdgeDetector<bool> alarmFanChanged(false);
-EdgeDetector<bool> alarmBatteryChanged(false);
-EdgeDetector<bool> alarmProbe1Changed(false);
-EdgeDetector<bool> alarmProbe2Changed(false);
 
 TimeoutMs timeoutReadPoti(25);
 MedianFilter<uint16_t> medianFilterPoti(10);
@@ -79,7 +69,7 @@ measurement::Probe probe2(&adcMcp3208, ADC_CHANNEL_PROBE1, SensorType::UNKNOWN);
 
 comm::WifiWebServer wifiWebServer(&storage, &loopTime);
 comm::WifiAp wifiAp;
-
+util::Alarm alarmState;
 
 void rpmIsr();
 ventilation::Fan fan(PIN_FAN, PIN_RPM, &rpmIsr);
@@ -159,22 +149,15 @@ void alarmWriteCallback() {
 #ifdef DEBUG
     Serial.println("alarm write callback");
 #endif
-    alarmAcked = true;
+    alarmState.ack();
     buzzer.disable();
 }
 
 /**
- * returns the status of all single (collective) alarm states
- **/
-bool getCollectiveAlarmState() {
-    return alarmBattery | alarmFan | probe1.isAlarm() | probe2.isAlarm();
-}
-
-/**
- * update the led functions
+ * update the led color
  **/
 void updateLed() {
-    if (getCollectiveAlarmState()) {
+    if (alarmState.isAny()) {
         ledR.setBreath(250);
         ledG.setOff();
         ledB.setOff();
@@ -255,7 +238,7 @@ void setup() {
     bleServer.setSensorTypeCallback(&sensorTypeWriteCallback);
     bleServer.start();
 
-    bleServer.setAlarm(false);
+    bleServer.setAlarm(0);
     bleServer.setBattery(6.0);
     bleServer.setFan(0);
     bleServer.setRpm(0);
@@ -278,14 +261,17 @@ void setup() {
  **/
 void loop() {
 
+    // probe handling
     if (probe1Changed(probe1.update())) {
         bleServer.setTemperature1(probe1.getProbeTemperature());
+        alarmState.fromBool(util::ALARM_BIT_TEMPERATURE1, probe1.isAlarm());
     }
-
     if (probe2Changed(probe2.update())) {
         bleServer.setTemperature2(probe2.getProbeTemperature());
+        alarmState.fromBool(util::ALARM_BIT_TEMPERATURE2, probe2.isAlarm());
     }
 
+    // fan handling
     if (!controlByBle && timeoutReadPoti()) {
         timeoutReadPoti.reset();
         uint16_t potiAnalogValue = adcMcp3208.getRawValue(ADC_CHANNEL_POTI);
@@ -309,66 +295,52 @@ void loop() {
         bleServer.setFan(fanPercent);
         updateLed();
     }
-    alarmFan = fan.getFanAlarm();
+    alarmState.fromBool(util::ALARM_BIT_FAN, fan.getFanAlarm());
 
+    // battery handling
     battery.update();
     float batteryVoltage = battery.getBatteryVoltage();
     if (batteryChanged(batteryVoltage)) {
         if (batteryVoltage < 4.5) {
-            alarmBattery = true;
+            alarmState.set(util::ALARM_BIT_BATTERY);
         }
         bleServer.setBattery(batteryVoltage);
     }
 
+    // buzzer handling
     buzzer.update();
 
+    // wifi handling
 	if (wifiWebServer.isConnected()) {
 		// handle the wifi webserver data
 		wifiWebServer.handle();
 	}
 
+    // led handling
     ledR.update();
     ledG.update();
     ledB.update();
 
     // alarms have to be handled last to make sure notification for sensor changes comes before alarm notification
-    // TODO should be improved
-    // test if any alarm has changed to true
-    bool anyAlarmTriggered = false;
-    if (alarmBatteryChanged(alarmBattery, true)) {
-        anyAlarmTriggered = true;
-    }
-    if (alarmFanChanged(alarmFan)) {
-        anyAlarmTriggered = true;
-    }
-    if (alarmProbe1Changed(probe1.isAlarm(), true)) {
-        anyAlarmTriggered = true;
-    }
-    if (alarmProbe2Changed(probe2.isAlarm(), true)) {
-        anyAlarmTriggered = true;
-    }
-    if (anyAlarmTriggered) {
-        // new alarm triggered
+    if (alarmState.isAny() && alarmState.isModifiedSet()) {
+        // at least one alarm is active and at least one alarm was set to alarm
 #ifdef DEBUG
         Serial.println("sending alarm");
 #endif
-        alarmAcked = false;
-        bleServer.setAlarm(true);
+        bleServer.setAlarm(alarmState.toUint8());
         buzzer.enable();
         updateLed();
-    }
-
-    alarmChanged.lambda(getCollectiveAlarmState(), [](bool newValue, bool oldValue) {
-        if (!newValue) {
-            // no alarm anymore and at least one alarm changed from alarm to normal
+    } else if (alarmState.isNone() && alarmState.isModifiedClear()) {
+        // at least one alarm was cleared and no alarm is currently active
 #ifdef DEBUG
-            Serial.println("sending alarm disable");
+        Serial.println("sending alarm disable");
 #endif
-            bleServer.setAlarm(false);
-            buzzer.disable();
-        }
+        bleServer.setAlarm(0);
+        buzzer.disable();
         updateLed();
-    });
+    }
+    // reset the alarm modifiers last, no more isModifiedX calls should happen after this until the next loop
+    alarmState.resetModified();
 
 	loopTime = micros() - lastLoopTimeRun;
 	lastLoopTimeRun = micros();

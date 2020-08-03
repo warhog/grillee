@@ -100,7 +100,7 @@ namespace ventilation {
                 return _rpmFiltered;
             }
 
-            boolean getFanAlarm() {
+            bool getFanAlarm() {
                 return _rpmAlarm;
             }
 
