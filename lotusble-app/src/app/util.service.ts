@@ -106,7 +106,7 @@ export class UtilService {
           resolve(bool);
         } else {
           console.error('bool is null');
-          reject();
+          resolve(false);
         }
       },
       (error: string) => {

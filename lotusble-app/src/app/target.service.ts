@@ -40,6 +40,7 @@ export class TargetService {
   private datapoints: Array<ReadAndRegisterData> = [];
   private rssiBehaviorSubject: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   private connectionTimeoutHandle: any = null;
+  private subscriptions: Array<Subscription> = [];
 
   constructor(private ble: BLE,
     private utilService: UtilService,
@@ -151,6 +152,12 @@ export class TargetService {
    * disconnect from ble device
    */
   disconnect() {
+    if (this.subscriptions.length > 0) {
+      this.subscriptions.forEach((entry) => {
+        entry.unsubscribe();
+      });
+      this.subscriptions = [];
+    }
     if (this.intervalRssi != null) {
       this.intervalRssi.unsubscribe();
       this.intervalRssi = null;
@@ -262,7 +269,7 @@ export class TargetService {
 
   setAlarmAck() {
     console.log('send alarm ack');
-    this.sendBleDataBoolean(LOTUSBLE_CHARACTERISTIC_ALARM_UUID, true);
+    this.sendBleDataNumber(LOTUSBLE_CHARACTERISTIC_ALARM_UUID, 'uint8_t', 128);
   }
 
   setFanSpeed(fanSpeed: number) {
@@ -316,7 +323,7 @@ export class TargetService {
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_TEMPERATURE2_UUID, 'int16_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SETPOINT1_UUID, 'uint16_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SETPOINT2_UUID, 'uint16_t');
-    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_ALARM_UUID, 'bool');
+    this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_ALARM_UUID, 'uint8_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SENSORTYPE1_UUID, 'uint8_t');
     this.addReadAndRegisterBLE(LOTUSBLE_CHARACTERISTIC_SENSORTYPE2_UUID, 'uint8_t');
 
@@ -330,10 +337,13 @@ export class TargetService {
       })
     });
 
-    this.utilService.dismissLoadingOverlay();
+    this.utilService.dismissLoadingOverlay(); 
     connectedCallback && connectedCallback();
   }
 
+  /**
+   * read and register for all ble notifications
+   */
   readAndRegisterAllBleStart() {
     this.datapoints.forEach((entry) => {
       // read the ble data from device

@@ -6,6 +6,8 @@ import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AudioService } from './audio.service';
 import { UtilService } from './util.service';
+import { AlarmService } from './alarm.service';
+import { IntervalObservable } from 'rxjs/observable/IntervalObservable';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +30,7 @@ export class AppComponent implements OnInit {
       icon: 'settings'
     }
   ];
+  private alarmBlink: boolean = false;
 
   constructor(
     private platform: Platform,
@@ -35,7 +38,8 @@ export class AppComponent implements OnInit {
     private statusBar: StatusBar,
     private audioService: AudioService,
     private utilService: UtilService,
-    private translateService: TranslateService
+    private translateService: TranslateService,
+    private alarmService: AlarmService
   ) {
     this.initializeApp();
   }
@@ -48,6 +52,10 @@ export class AppComponent implements OnInit {
       this.utilService.loadTemperatureAsFahrenheitSetting();
       
       this.initializeLanguage();
+
+      IntervalObservable.create(500).subscribe(() => {
+        this.alarmBlink = !this.alarmBlink;
+      });
 
       this.splashScreen.hide();
     });
@@ -93,6 +101,20 @@ export class AppComponent implements OnInit {
     } else {
       console.error('invalid language selected: ', language);
     }
+  }
+
+  /**
+   * tests if any alarm is existing, hides alarm footer in the view
+   */
+  hasAlarmFooter(): boolean {
+    return this.alarmService.hasAlarm();
+  }
+
+  /**
+   * get the color name for the alarm footer in the view
+   */
+  getAlarmFooterColor(): string {
+    return this.alarmBlink ? "danger" : "warning";
   }
 
   public get appPages() {

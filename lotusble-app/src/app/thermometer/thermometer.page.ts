@@ -1,10 +1,7 @@
 import { Component, OnInit, NgZone } from '@angular/core';
 import { ModalController } from '@ionic/angular';
-import { AudioService } from '../audio.service';
 import { Subscription } from 'rxjs';
-import { IntervalObservable } from 'rxjs/observable/IntervalObservable'
 import { BackgroundMode } from '@ionic-native/background-mode/ngx';
-import { AlarmService } from '../alarm.service';
 import { SetpointPage } from '../setpoint/setpoint.page';
 import { MeatTemperatureService } from '../meat-temperature.service';
 import { SensorType } from '../sensor-type.enum';
@@ -13,12 +10,7 @@ import { TargetService } from '../target.service';
 import { UtilService } from '../util.service';
 import { TranslateService } from '@ngx-translate/core';
 
-const MIN_FAN_RPM = 300;
-const ALARM_ID_FAN = 1;
-const ALARM_ID_BATTERY = 2;
-const ALARM_ID_PROBE1 = 3;
-const ALARM_ID_PROBE2 = 4;
-const ALARM_ID_LOST_CONNECTION = 5;
+//const MIN_FAN_RPM = 300;
 
 @Component({
   selector: 'app-thermometer',
@@ -28,7 +20,6 @@ const ALARM_ID_LOST_CONNECTION = 5;
 export class ThermometerPage implements OnInit {
 
   private _rssi: number = 0;
-  private alarmBlink: boolean = false;
   private subscriptions: Array<Subscription> = [];
 
   // used for modal setpoint dialog
@@ -48,8 +39,6 @@ export class ThermometerPage implements OnInit {
   constructor(private backgroundMode: BackgroundMode,
     private meatTemperatureService: MeatTemperatureService,
     private modalController: ModalController,
-    private alarmService: AlarmService,
-    private audioService: AudioService,
     private sensorTypeService: SensorTypeService,
     private targetService: TargetService,
     private utilService: UtilService,
@@ -100,15 +89,6 @@ export class ThermometerPage implements OnInit {
       this.ngZone.run(() => { this.setpoint2 = setpoint; console.log('setpoint2', setpoint); });
     }));
 
-    this.subscriptions.push(this.targetService.getSubscriptionForAlarm().subscribe((alarm: number) => {
-      this.ngZone.run(() => {
-        if (alarm == 1) {
-          // to alarm
-          this.handleIncomingAlarm();
-        }
-      });
-    }));
-
     this.subscriptions.push(this.targetService.getSubscriptionForSensorType1().subscribe((sensorType: number) => {
       this.ngZone.run(() => { this.sensorType1 = this.sensorTypeService.getSensorTypeModelByIndex(sensorType).type; });
     }));
@@ -130,20 +110,6 @@ export class ThermometerPage implements OnInit {
     } else {
       return 'battery-dead-outline';
     }
-  }
-
-  /**
-   * tests if any alarm is existing, hides alarm footer in the view
-   */
-  hasAlarmFooter(): boolean {
-    return this.alarmService.hasAlarm();
-  }
-
-  /**
-   * get the color name for the alarm footer in the view
-   */
-  getAlarmFooterColor(): string {
-    return this.alarmBlink ? "danger" : "warning";
   }
 
   /**
@@ -212,61 +178,10 @@ export class ThermometerPage implements OnInit {
     }
   }
 
-  /**
-   * handle alarms, should only be triggered on raising edges of value
-   */
-  handleIncomingAlarm() {
-    console.log('handle alarm method');
-    if (this.fanRpm < MIN_FAN_RPM) {
-      console.log('rpm alarm');
-      this.translateService.get('alarm.minRpmText', {minFanRpm: MIN_FAN_RPM}).subscribe((res: string) => {
-        this.alarmService.createAlarm(ALARM_ID_FAN,  res, (alarmId: number) => {
-          this.targetService.setAlarmAck();
-        });
-      });
-    } else if (this.battery < 4.5) {
-      console.log('battery alarm');
-      this.translateService.get('alarm.lowBatteryText').subscribe((res: string) => {
-          this.alarmService.createAlarm(ALARM_ID_BATTERY, res, (alarmId: number) => {
-          this.targetService.setAlarmAck();
-        });
-      });
-    } else if (this.temperatureProbe1 >= this.setpoint1) {
-      console.log('temperature1 >= setpoint1');
-      this.translateService.get('alarm.probeReachedSetpoint', {probeNr: 1}).subscribe((res: string) => {
-        this.alarmService.createAlarm(ALARM_ID_PROBE1, res, (alarmId: number) => {
-          this.targetService.setAlarmAck();
-        });
-      });
-    } else if (this.temperatureProbe2 >= this.setpoint2) {
-      console.log('temperature2 >= setpoint2');
-      this.translateService.get('alarm.probeReachedSetpoint', {probeNr: 2}).subscribe((res: string) => {
-        this.alarmService.createAlarm(ALARM_ID_PROBE2, res, (alarmId: number) => {
-          this.targetService.setAlarmAck();
-        });
-      });
-    } else {
-      console.error('no alarm?');
-    }
-  }
-
   ionViewWillEnter() {
     this.utilService.backButton();
 
     this.doSubscriptions();
-
-    this.subscriptions.push(IntervalObservable.create(500).subscribe(() => {
-      this.alarmBlink = !this.alarmBlink;
-    }));
-
-    this.subscriptions.push(IntervalObservable.create(10 * 1000).subscribe(() => {
-      if (this.targetService.isConnected() && this.targetService.isConnectionLost()) {
-        this.audioService.play('beep');
-        this.translateService.get('alarm.lostConnectionText').subscribe((res: string) => {
-          this.alarmService.createAlarm(ALARM_ID_LOST_CONNECTION, res);
-        });
-      }
-    }));
 
     this.backgroundMode.enable();
     this.translateService.get(['general.title', 'general.backgroundServiceDescription']).subscribe((res: string) => {
