@@ -10,8 +10,6 @@ import { TargetService } from '../target.service';
 import { UtilService } from '../util.service';
 import { TranslateService } from '@ngx-translate/core';
 
-//const MIN_FAN_RPM = 300;
-
 @Component({
   selector: 'app-thermometer',
   templateUrl: './thermometer.page.html',
