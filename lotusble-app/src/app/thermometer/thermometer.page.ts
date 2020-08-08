@@ -72,7 +72,7 @@ export class ThermometerPage implements OnInit {
     }));
 
     this.subscriptions.push(this.targetService.getSubscriptionForProbe1().subscribe((temperature: number) => {
-      this.ngZone.run(() => { this.temperatureProbe1 = temperature; console.log('temperature1', temperature); });
+      this.ngZone.run(() => { this.temperatureProbe1 = temperature; });
     }));
 
     this.subscriptions.push(this.targetService.getSubscriptionForProbe2().subscribe((temperature: number) => {
