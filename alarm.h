@@ -8,6 +8,7 @@ const uint8_t ALARM_BIT_FAN = 0;
 const uint8_t ALARM_BIT_BATTERY = 1;
 const uint8_t ALARM_BIT_TEMPERATURE1 = 2;
 const uint8_t ALARM_BIT_TEMPERATURE2 = 3;
+const uint8_t ALARM_BIT_ACKNOWLEDGE = 7;
 
 class Alarm {
     public:

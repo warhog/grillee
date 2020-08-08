@@ -1,6 +1,6 @@
 #include "wifiwebserver.h"
 
-#define DEBUG
+//#define DEBUG
 
 namespace comm {
 

@@ -325,7 +325,7 @@ void loop() {
     if (alarmState.isAny() && alarmState.isModifiedSet()) {
         // at least one alarm is active and at least one alarm was set to alarm
 #ifdef DEBUG
-        Serial.println("sending alarm");
+        Serial.printf("sending alarm: %d\n", alarmState.toUint8());
 #endif
         bleServer.setAlarm(alarmState.toUint8());
         buzzer.enable();
