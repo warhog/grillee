@@ -7,6 +7,7 @@ import { IntervalObservable } from 'rxjs/observable/IntervalObservable';
 import { UtilService } from './util.service';
 import { TranslateService } from '@ngx-translate/core';
 import { NavController } from '@ionic/angular';
+import { resolve } from 'url';
 
 const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 const LOTUSBLE_CHARACTERISTIC_ALARM_UUID = '06817906-f5db-4d66-86e4-776e74074cd6';
@@ -204,7 +205,11 @@ export class TargetService {
 }
 
   scanError(error: string) {
-    console.error('error scanning ble', error);
+    console.error('error scanning ble: ', error);
+  }
+
+  isBleAvailable(): Promise<void> {
+    return this.ble.isEnabled();
   }
 
 

@@ -32,7 +32,8 @@
     },
     "home": {
         "scanButtonText": "Suchen",
-        "noDevicesFoundText": "Keine Geräte gefunden."
+        "noDevicesFoundText": "Keine Geräte gefunden.",
+        "bleNotAvailableText": "Bluetooth Low Energy nicht aktiviert!"
     },
     "target": {
         "connectingText": "Verbinde... bitte warten...",

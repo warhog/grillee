@@ -13,7 +13,8 @@ export class HomePage {
 
   private _devices: BleDevice[] = [];
   private _hasLoaded: boolean = false;
-
+  private _bleNotAvailable: boolean = true;
+  
   constructor(
     public navCtrl: NavController,
     private ngZone: NgZone,
@@ -27,20 +28,27 @@ export class HomePage {
   ionViewWillEnter() {
     this.utilService.backButton();
 
-    this.devices = [];
-    this.targetService.loadOrScan((bleDevice: BleDevice) => {
-      // load callback
-      this.hasLoaded = true;
-      this.targetService.connect(bleDevice, () => {
-        console.log('connected callback firing');
-        this.navCtrl.navigateRoot(['/thermometer']);
+    this.targetService.isBleAvailable().then(() => {
+      console.log('ble available');
+      this.bleNotAvailable = false;
+      this.devices = [];
+      this.targetService.loadOrScan((bleDevice: BleDevice) => {
+        // load callback
+        this.hasLoaded = true;
+        this.targetService.connect(bleDevice, () => {
+          console.log('connected callback firing');
+          this.navCtrl.navigateRoot(['/thermometer']);
+        });
+      }, (bleDevice: BleDevice) => {
+        // scan callback
+        console.log('callback result new device', bleDevice);
+        this.ngZone.run(() => {
+          this.devices.push(bleDevice);
+        });
       });
-    }, (bleDevice: BleDevice) => {
-      // scan callback
-      console.log('callback result new device', bleDevice);
-      this.ngZone.run(() => {
-        this.devices.push(bleDevice);
-      });
+    }, (msg) => {
+      // ble not available
+      console.error('ble not available: ', msg);
     });
   }
 
@@ -71,5 +79,11 @@ export class HomePage {
   }
   public set hasLoaded(value: boolean) {
     this._hasLoaded = value;
+  }
+  public get bleNotAvailable(): boolean {
+    return this._bleNotAvailable;
+  }
+  public set bleNotAvailable(value: boolean) {
+    this._bleNotAvailable = value;
   }
 }

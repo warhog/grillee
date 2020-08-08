@@ -16,12 +16,13 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <p [hidden]="devices.length > 0 || hasLoaded">{{ 'home.noDevicesFoundText' | translate }}</p>
-   <ion-list>
+  <p [hidden]="devices.length > 0 || hasLoaded || bleNotAvailable">{{ 'home.noDevicesFoundText' | translate }}</p>
+  <p [hidden]="!bleNotAvailable">{{ 'home.bleNotAvailableText' | translate }}</p>
+  <ion-list>
     <button ion-item *ngFor="let device of devices" (click)="deviceSelected(device)">
       <h2>{{ device.name || 'Unknown' }}</h2>
       <p>{{ device.id }}</p>
       <p><ion-icon name="cellular-outline"></ion-icon> {{device.rssi}} db</p>
     </button>  
-   </ion-list> 
+  </ion-list> 
 </ion-content>
