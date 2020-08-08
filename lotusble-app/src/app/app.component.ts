@@ -6,8 +6,6 @@ import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AudioService } from './audio.service';
 import { UtilService } from './util.service';
-import { AlarmService } from './alarm.service';
-import { IntervalObservable } from 'rxjs/observable/IntervalObservable';
 
 @Component({
   selector: 'app-root',
@@ -37,8 +35,7 @@ export class AppComponent implements OnInit {
     private statusBar: StatusBar,
     private audioService: AudioService,
     private utilService: UtilService,
-    private translateService: TranslateService,
-    private alarmService: AlarmService
+    private translateService: TranslateService
   ) {
     this.initializeApp();
   }
