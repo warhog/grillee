@@ -181,13 +181,14 @@ export class ThermometerPage implements OnInit {
 
     this.doSubscriptions();
 
-    this.backgroundMode.enable();
     this.translateService.get(['general.title', 'general.backgroundServiceDescription']).subscribe((res: string) => {
-        this.backgroundMode.setDefaults({
+      this.backgroundMode.setDefaults({
         'title': res['general.title'],
         'text': res['general.backgroundServiceDescription'],
+        'icon': 'ic_launcher',
         'resume': true
       });
+      this.backgroundMode.enable();
     });
 
     this.backgroundMode.on('activate').subscribe(() => {
