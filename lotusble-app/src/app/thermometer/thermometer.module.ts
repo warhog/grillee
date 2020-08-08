@@ -11,6 +11,7 @@ import { SetpointPage } from '../setpoint/setpoint.page';
 import { SetpointPageModule } from '../setpoint/setpoint.module';
 import { ProbePipe } from '../probe.pipe';
 import { TranslateModule } from '@ngx-translate/core';
+import { SharedModule } from '../shared/shared.module';
 
 @NgModule({
   imports: [
@@ -19,7 +20,8 @@ import { TranslateModule } from '@ngx-translate/core';
     IonicModule,
     ThermometerPageRoutingModule,
     SetpointPageModule,
-    TranslateModule.forChild()
+    TranslateModule.forChild(),
+    SharedModule
   ],
   declarations: [ThermometerPage, ProbePipe],
   entryComponents: [SetpointPage]
