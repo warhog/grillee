@@ -7,6 +7,8 @@
 
 namespace util {
 
+//#define DEBUG
+
 // voltage divider: 10000:2200 ohm
 const float FACTOR_BATTERY_VOLTAGE = 5.545454545;
 
@@ -19,6 +21,9 @@ class Battery {
             if (_timeout()) {
                 _timeout.reset();
                 _adcFiltered.AddValue(static_cast<float>(_adc->getRawVoltage(_channel)) / 1000.0 * FACTOR_BATTERY_VOLTAGE);
+#ifdef DEBUG
+                Serial.printf("voltage raw: %d, volt: %f\n", _adc->getRawVoltage(_channel), static_cast<float>(_adc->getRawVoltage(_channel)) / 1000.0 * FACTOR_BATTERY_VOLTAGE);
+#endif
             }
         }
 

@@ -33,10 +33,10 @@ const gpio_num_t PIN_LED_G = GPIO_NUM_33;
 const gpio_num_t PIN_LED_B = GPIO_NUM_25;
 const gpio_num_t PIN_WEB_UPDATE = GPIO_NUM_34;
 
-const MCP3208::Channel ADC_CHANNEL_BATTERY = MCP3208::Channel::SINGLE_7;
-const MCP3208::Channel ADC_CHANNEL_POTI = MCP3208::Channel::SINGLE_6;
-const MCP3208::Channel ADC_CHANNEL_PROBE0 = MCP3208::Channel::SINGLE_0;
-const MCP3208::Channel ADC_CHANNEL_PROBE1 = MCP3208::Channel::SINGLE_1;
+const MCP3208::Channel ADC_CHANNEL_BATTERY = MCP3208::Channel::SINGLE_1;
+const MCP3208::Channel ADC_CHANNEL_POTI = MCP3208::Channel::SINGLE_0;
+const MCP3208::Channel ADC_CHANNEL_PROBE0 = MCP3208::Channel::SINGLE_7;
+const MCP3208::Channel ADC_CHANNEL_PROBE1 = MCP3208::Channel::SINGLE_6;
 
 // wether device is controlled by bluetooth device or poti
 bool controlByBle = false;
@@ -277,6 +277,7 @@ void loop() {
         uint16_t potiAnalogValue = adcMcp3208.getRawValue(ADC_CHANNEL_POTI);
         uint16_t potiAnalogFiltered = medianFilterPoti.AddValue(potiAnalogValue);
         uint16_t fanPercentFiltered = static_cast<uint16_t>((static_cast<float>(potiAnalogFiltered) / 4095.0) * 100.0);
+//        Serial.printf("potiAnalogValue: %d, potiAnalogFiltered: %d, fanPercentFiltered: %d\n", potiAnalogValue, potiAnalogFiltered, fanPercentFiltered);
         if (fanPercentFiltered >= 95) {
             fanPercentFiltered = 100;
         }

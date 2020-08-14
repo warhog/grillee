@@ -35,7 +35,14 @@ namespace ventilation {
 
                 // set pwm generator for fan using ledcontroller
                 // set to 25khz and 8bit resolution
+#ifdef DEBUG
+                float freq = 
+#endif
                 ledcSetup(util::LEDC_CHANNEL_FAN, 25000, LEDC_FAN_BIT);
+#ifdef DEBUG
+                Serial.begin(115200);
+                Serial.printf("freq: %f\n", freq);
+#endif
                 ledcAttachPin(pinFanPwm, util::LEDC_CHANNEL_FAN);
                 // set to full speed at initialization
                 ledcWrite(util::LEDC_CHANNEL_FAN, LEDC_FAN_MAX);
