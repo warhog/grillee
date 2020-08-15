@@ -178,6 +178,13 @@ export class ThermometerPage implements OnInit {
 
   ionViewWillEnter() {
     this.utilService.backButton();
+    this.utilService.backButtonCallback(() => {
+      // disable background mode before exit
+      console.log('disable background mode on exit');
+      if (this.backgroundMode.isEnabled()) {
+        this.backgroundMode.disable();
+      }
+    });
 
     this.doSubscriptions();
 
@@ -185,7 +192,7 @@ export class ThermometerPage implements OnInit {
       this.backgroundMode.setDefaults({
         'title': res['general.title'],
         'text': res['general.backgroundServiceDescription'],
-        'icon': 'ic_launcher',
+        'icon': 'ic_launcher',    // icon has to be set (https://github.com/katzer/cordova-plugin-background-mode/issues/490)
         'resume': true
       });
       this.backgroundMode.enable();
@@ -209,7 +216,9 @@ export class ThermometerPage implements OnInit {
       });
       this.subscriptions = [];
     }
-    this.backgroundMode.disable();
+    if (this.backgroundMode.isEnabled()) {
+      this.backgroundMode.disable();
+    }
   }
 
   public get rssi(): number {

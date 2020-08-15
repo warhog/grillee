@@ -22,9 +22,6 @@ export class HomePage {
     private targetService: TargetService
   ) {}
   
-  ionViewDidEnter() { 
-  }
-
   ionViewWillEnter() {
     this.utilService.backButton();
 

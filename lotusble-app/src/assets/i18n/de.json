@@ -19,7 +19,7 @@
     "general": {
         "title": "LotusBLE",
         "grillThermometer": "Grill Thermometer",
-        "backgroundServiceDescription": "Empfängt Werte des Bluetooth Geräts im Hintergrund.",
+        "backgroundServiceDescription": "Empfängt Daten im Hintergrund.",
         "thermometer": "Thermometer"
     },
     "setpoint": {

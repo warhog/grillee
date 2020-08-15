@@ -17,6 +17,7 @@ export class UtilService {
   private loadingOverlay: any = null;
   private backButtonSubscription: Subscription = null;
   private backButtonPressed: number = 0;
+  private backButtonCallbackFunction: Function = null;
   private temperatureAsFahrenheit: boolean = false;
   private language: string = 'en';
 
@@ -30,6 +31,7 @@ export class UtilService {
    * handler for the back button application exit
    */
   backButton() {
+    this.backButtonCallbackFunction = null;
     if (this.backButtonSubscription == null) {
       this.backButtonSubscription = this.platform.backButton.subscribeWithPriority(1, () => {
         if (this.backButtonPressed == 0) {
@@ -42,10 +44,22 @@ export class UtilService {
             this.backButtonPressed = 0;
           }, 2000);
         } else {
+          console.log('exiting app');
+          if (this.backButtonCallbackFunction != null) {
+            console.log('calling exit callback');
+            this.backButtonCallbackFunction();
+          }
           navigator['app'].exitApp();
         }
       });
     }
+  }
+
+  backButtonCallback(callbackBeforeExit: Function = null) {
+    if (this.backButtonCallbackFunction != null) {
+      console.error('backButtonCallback() shall be called after backButton()');
+    }
+    this.backButtonCallbackFunction = callbackBeforeExit;
   }
 
   /**
