@@ -9,7 +9,7 @@ namespace util {
 
 //#define DEBUG
 
-// voltage divider: 10000:2200 ohm
+// voltage divider: 10000:1000 ohm
 const float FACTOR_BATTERY_VOLTAGE = 5.545454545;
 
 class Battery {
