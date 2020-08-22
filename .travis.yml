@@ -7,7 +7,7 @@ matrix:
       os: linux
       dist: bionic
       install:
-        - cd app
+        - cd lotusble-app
         - npm install -g ionic cordova
         - npm install
       script:
@@ -33,7 +33,7 @@ matrix:
         - curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
         - sudo apt-get install nodejs
         - sudo apt-get install build-essential
-        - cd app
+        - cd lotusble-app
         - sudo npm install -g ionic cordova
         - sudo npm install
       script:
@@ -46,9 +46,8 @@ matrix:
       os: linux
       dist: bionic
       script:
-        - cd firmware
         - ./build_travis.sh
-        - cd ../build
+        - cd build
 
 deploy:
   provider: releases
