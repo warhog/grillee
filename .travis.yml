@@ -1,19 +1,5 @@
 matrix:
   include:
-    # app for browser (just for testing)
-    - language: node_js
-      node_js:
-        - 11
-      os: linux
-      dist: bionic
-      install:
-        - cd lotusble-app
-        - npm install -g ionic cordova
-        - npm install
-      script:
-        - ionic cordova platform add browser
-        - ionic cordova build --release --prod browser
-
     # app for android
     - language: android
       os: linux
@@ -30,15 +16,15 @@ matrix:
             - oracle-java8-installer
             - oracle-java8-set-default
       install:
-        - curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
-        - sudo apt-get install nodejs
-        - sudo apt-get install build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | bash -
+        - apt-get install nodejs
+        - apt-get install build-essential
         - cd lotusble-app
-        - sudo npm install -g ionic cordova
-        - sudo npm install
+        - npm install ionic cordova
+        - npm install
       script:
-        - sudo ionic cordova platform add android
-        - sudo ionic cordova build --release --prod android
+        - ionic cordova platform add android
+        - ionic cordova build --release --prod android
       
       
     # firmware
