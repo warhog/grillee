@@ -22,7 +22,7 @@
 #include "version.h"
 #include "alarm.h"
 
-#define DEBUG
+//#define DEBUG
 
 const gpio_num_t PIN_FAN = GPIO_NUM_26;
 const gpio_num_t PIN_RPM = GPIO_NUM_27;
@@ -55,9 +55,9 @@ EdgeDetector<int16_t> probe1Changed(0, 1);
 EdgeDetector<int16_t> probe2Changed(0, 1);
 
 BleServer bleServer;
-util::Led ledR(PIN_LED_R, util::LEDC_CHANNEL_LED_R);
-util::Led ledG(PIN_LED_G, util::LEDC_CHANNEL_LED_G);
-util::Led ledB(PIN_LED_B, util::LEDC_CHANNEL_LED_B);
+util::Led ledR(PIN_LED_R, util::LEDC_CHANNEL_LED_R, true);
+util::Led ledG(PIN_LED_G, util::LEDC_CHANNEL_LED_G, true);
+util::Led ledB(PIN_LED_B, util::LEDC_CHANNEL_LED_B, true);
 
 util::Adc_MCP3208 adcMcp3208;
 util::Storage storage;

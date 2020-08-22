@@ -59,7 +59,7 @@ class Probe {
                 }
 
                 uint16_t adcValue = _adc->getRawValue(_channel);
-                if (adcValue < 10) {
+                if (adcValue < 10 || adcValue > 4080) {
 #ifdef DEBUG
                     Serial.printf("probe not connected: %d\n", adcValue);
 #endif

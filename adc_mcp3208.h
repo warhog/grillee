@@ -9,8 +9,8 @@ extern const gpio_num_t PIN_ADC_CS;
 
 namespace util {
 
-// adc vref 3.3v
-const uint16_t ADC_VREF = 3300;
+// adc vref 2.5v
+const uint16_t ADC_VREF = 2500;
 // SPI clock 1.6mhz
 const uint32_t ADC_SPI_CLK = 1600000;
 
