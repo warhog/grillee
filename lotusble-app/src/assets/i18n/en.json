@@ -20,7 +20,8 @@
         "title": "LotusBLE",
         "grillThermometer": "Grill Thermometer",
         "backgroundServiceDescription": "Receives data in background.",
-        "thermometer": "Thermometer"
+        "thermometer": "Thermometer",
+        "trademarkText": "LotusGrill® is a registered trademark of LotusGrill GmbH."
     },
     "setpoint": {
         "setpointTitle": "Setpoint",

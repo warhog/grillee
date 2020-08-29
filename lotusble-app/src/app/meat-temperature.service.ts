@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { NgLocaleLocalization } from '@angular/common';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateService, LangChangeEvent } from '@ngx-translate/core';
 
 @Injectable({
   providedIn: 'root'
@@ -33,6 +33,13 @@ export class MeatTemperatureService {
   ];
 
   constructor(private translateService: TranslateService) {
+    this.translateService.onLangChange.subscribe((params: LangChangeEvent) => {
+      console.log('language changed to ', params);
+      this.prepopulateMeatData();
+    });
+  }
+
+  prepopulateMeatData() {
     this.meatTypes.map((entry: MeatType) => {
       this.translateService.get('meatTypes.' + entry.id).subscribe((res: string) => {
         entry.name = res;

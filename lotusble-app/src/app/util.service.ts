@@ -4,10 +4,12 @@ import { BleDevice } from './models/bledevice';
 import { Subscription } from 'rxjs';
 import { Storage } from '@ionic/storage';
 import { TranslateService } from '@ngx-translate/core';
+import { MeatTemperatureService } from './meat-temperature.service';
 
 const STORAGE_KEY_BLE_DEVICE = 'bleDevice';
 const STORAGE_KEY_TEMPERATURE_AS_FAHRENHEIT = 'fahrenheit';
 const STORAGE_KEY_LANGUAGE = 'language';
+const STORAGE_KEY_PROBE = 'probe';
 
 @Injectable({
   providedIn: 'root'
@@ -20,12 +22,14 @@ export class UtilService {
   private backButtonCallbackFunction: Function = null;
   private temperatureAsFahrenheit: boolean = false;
   private language: string = 'en';
+  private probeData: Array<MeatTypeTemperature> = [];
 
   constructor(private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private storage: Storage,
     private platform: Platform,
-    private translateService: TranslateService) { }
+    private translateService: TranslateService,
+    private meatTemperatureService: MeatTemperatureService) { }
 
   /**
    * handler for the back button application exit
@@ -193,6 +197,59 @@ export class UtilService {
    */
   clearLanguageSetting() {
     this.storage.remove(STORAGE_KEY_LANGUAGE);
+  }
+
+  getProbeSettingIdentifier(probeNumber: number): string {
+    return STORAGE_KEY_PROBE + probeNumber;
+  }
+
+  /**
+   * store given probe data to storage
+   * @param bleDevice 
+   */
+  storeProbeSetting(meatTypeTemperature: MeatTypeTemperature, probeNumber: number) {
+    console.log('storing meat type temperature ', meatTypeTemperature, ' for probe ', probeNumber);
+    this.storage.set(this.getProbeSettingIdentifier(probeNumber), meatTypeTemperature);
+  }
+
+  /**
+   * clear stored probe data from storage
+   */
+  clearProbeSetting(probeNumber: number) {
+    this.storage.remove(this.getProbeSettingIdentifier(probeNumber));
+  }
+
+  /**
+   * read probe setting from chached value (to prevent rereading the database)
+   */
+  getProbeSettingFromCache(probeNumber: number): MeatTypeTemperature {
+    if(typeof this.probeData[probeNumber] !== 'undefined') {
+      return this.probeData[probeNumber];
+    }
+    return this.meatTemperatureService.getDefaultMeatTypeTemperature();
+  }
+
+  /**
+   * load probe setting from storage
+   */
+  loadProbeSetting(probeNumber: number): Promise<MeatTypeTemperature> {
+    return new Promise((resolve, reject) => {
+      this.storage.get(this.getProbeSettingIdentifier(probeNumber)).then(
+        (data: MeatTypeTemperature) => {
+        console.log('stored probe data for probe ', probeNumber, ': ', data);
+        if (data != null) {
+          this.probeData[probeNumber] = data;
+          resolve(data);
+        } else {
+          console.error('stored probe data is null, use default value');
+          resolve(this.meatTemperatureService.getDefaultMeatTypeTemperature());
+        }
+      },
+      (error: string) => {
+        console.error('storage error', error)
+        reject();
+      });
+    });
   }
 
   /**

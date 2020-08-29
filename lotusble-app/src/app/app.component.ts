@@ -55,7 +55,9 @@ export class AppComponent implements OnInit {
   }
 
   initializeLanguage() {
+    this.translateService.addLangs(this.languages);
     this.translateService.setDefaultLang('en');
+    this.translateService.use('en');
     this.utilService.loadLanguageSetting().then((language: string) => {
       this.translateService.use(language);
     }).catch((language: string) => {
@@ -64,10 +66,6 @@ export class AppComponent implements OnInit {
     }).finally(() => {
       this.initializeLanguageMenu();
     });
-
-    this.translateService.addLangs(this.languages);
-    this.translateService.setDefaultLang('en');
-
   }
 
   initializeLanguageMenu() {

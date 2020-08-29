@@ -42,8 +42,16 @@ export class ThermometerPage implements OnInit {
     private utilService: UtilService,
     private translateService: TranslateService,
     private ngZone: NgZone) {
-      this.meatTypeTemperature1 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
-      this.meatTypeTemperature2 = this.meatTemperatureService.getDefaultMeatTypeTemperature();
+      this.utilService.loadProbeSetting(1).then((meatTypeTemperature: MeatTypeTemperature) => {
+        this.meatTypeTemperature1 = meatTypeTemperature;
+      }).catch((err) => {
+        console.error('failed to read meat type temperature 1: ', err)
+      });
+      this.utilService.loadProbeSetting(2).then((meatTypeTemperature: MeatTypeTemperature) => {
+        this.meatTypeTemperature2 = meatTypeTemperature;
+      }).catch((err) => {
+        console.error('failed to read meat type temperature 2: ', err)
+      });
   }
 
 
@@ -169,10 +177,12 @@ export class ThermometerPage implements OnInit {
       this.meatTypeTemperature1 = meatTypeTemperatureResponse;
       this.setpoint1 = this.meatTypeTemperature1.temperature;
       this.targetService.setSetpoint1(this.setpoint1);
+      this.utilService.storeProbeSetting(this.meatTypeTemperature1, 1);
     } else {
       this.meatTypeTemperature2 = meatTypeTemperatureResponse;
       this.setpoint2 = this.meatTypeTemperature2.temperature;
       this.targetService.setSetpoint2(this.setpoint2);
+      this.utilService.storeProbeSetting(this.meatTypeTemperature2, 2);
     }
   }
 
