@@ -1,3 +1,19 @@
+/**
+* Copyright (C) 2020 warhog <warhog@gmx.de>
+* 
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+**/
 import { Injectable } from '@angular/core';
 import { BLE } from '@ionic-native/ble/ngx';
 import { BleDevice } from './models/bledevice';
@@ -7,7 +23,6 @@ import { IntervalObservable } from 'rxjs/observable/IntervalObservable';
 import { UtilService } from './util.service';
 import { TranslateService } from '@ngx-translate/core';
 import { NavController } from '@ionic/angular';
-import { resolve } from 'url';
 
 const LOTUSBLE_SERVICE_UUID = '32b33b05-6ac4-4137-9ca7-6dc3dbac4e41';
 const LOTUSBLE_CHARACTERISTIC_ALARM_UUID = '06817906-f5db-4d66-86e4-776e74074cd6';
