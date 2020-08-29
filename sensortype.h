@@ -1,13 +1,30 @@
+/**
+* Copyright (C) 2020 warhog <warhog@gmx.de>
+* Copyright (C) 2019/2020  Martin Koerner
+
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+**/
+// values and type names thankfully taken from wlanthermo project
+// https://github.com/WLANThermo-nano/WLANThermo_ESP32_Software/blob/master/src/temperature/TemperatureBase.cpp#L294
+// https://github.com/WLANThermo-nano/WLANThermo_ESP32_Software/blob/master/src/temperature/TemperatureSensors.h
+
 #pragma once
 
 #include <type_traits>
 
 //#define DEBUG
 const unsigned int NR_OF_SENSORTYPES = 15;
-
-// values and type names thankfully taken from wlanthermo project
-// https://github.com/WLANThermo-nano/WLANThermo_ESP32_Software/blob/master/src/temperature/TemperatureBase.cpp#L294
-// https://github.com/WLANThermo-nano/WLANThermo_ESP32_Software/blob/master/src/temperature/TemperatureSensors.h
 
 enum class SensorType {
     UNKNOWN = 0,

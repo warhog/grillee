@@ -1,3 +1,19 @@
+/**
+* Copyright (C) 2020 warhog <warhog@gmx.de>
+* 
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+**/
 #pragma once
 #include <Arduino.h>
 
@@ -208,15 +224,22 @@ namespace util {
                 if (_timeoutLed()) {
                     _timeoutLed.reset();
 
+                    uint16_t brightness = getBrightness();
+                    if (brightness > 0) {
+                        // shift valuation from 0-100% to 40-100% to ensure at least 40% lightness
+                        brightness = map(brightness, 0, 4095, static_cast<uint16_t>((4095.0 / 100.0) * 40.0), 4095);
+                        // do gamma correction
+                        brightness = gammaCorrect(brightness);
+                    }
                     if (_led_function == led_function_t::STATIC) {
-                        ledcWrite(_channel, gammaCorrect(getBrightness()));
+                        ledcWrite(_channel, brightness);
                     } else if (_led_function == led_function_t::BLINK) {
                         _blinkStatus = !_blinkStatus;
-                        ledcWrite(_channel, _blinkStatus ? gammaCorrect(getBrightness()) : 0);
+                        ledcWrite(_channel, _blinkStatus ? brightness : 0);
                     } else if (_led_function == led_function_t::BREATH) {
                         float it = (exp(sin(millis() / (float)_breathSpeed * PI)) - 0.36787944) * 108.0;
                         setBrightness8(static_cast<uint8_t>(it));
-                        ledcWrite(_channel, gammaCorrect(getBrightness()));
+                        ledcWrite(_channel, brightness);
                     }
                 }
             }

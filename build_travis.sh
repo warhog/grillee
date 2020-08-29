@@ -56,9 +56,9 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "install library MedianFilterLib"
-DEPENDENCY_OUTPUT=$(arduino --install-library MedianFilterLib:1.0.0 > /dev/null 2>&1)
+DEPENDENCY_OUTPUT=$(arduino --install-library MedianFilterLib2:1.0.0 > /dev/null 2>&1)
 if [ $? -ne 0 ]; then
-    echo "failed to install MedianFilterLib: ${DEPENDENCY_OUTPUT}"
+    echo "failed to install MedianFilterLib2: ${DEPENDENCY_OUTPUT}"
     exit 1
 fi
 
@@ -77,17 +77,17 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "building"
-BUILD_PATH=../build-firmware
-BUILD_OUTPUT=$(arduino --verify --pref build.path=${BUILD_PATH} --preserve-temp-files firmware.ino 2>&1)
+BUILD_PATH=./build
+BUILD_OUTPUT=$(arduino --verify --pref build.path=${BUILD_PATH} --preserve-temp-files lotusble.ino 2>&1)
 if [ $? -ne 0 ]; then
     echo "failed to build: ${BUILD_OUTPUT}"
     exit 1
 fi
 
 echo "renaming binary"
-cp ${BUILD_PATH}/firmware.ino.bin ${BUILD_PATH}/firmware-${VERSION}.bin
-cp ${BUILD_PATH}/firmware.ino.partitions.bin ${BUILD_PATH}/firmware-${VERSION}.partitions.bin
+cp ${BUILD_PATH}/lotusble.ino.bin ${BUILD_PATH}/lotusble-${VERSION}.bin
+cp ${BUILD_PATH}/lotusble.ino.partitions.bin ${BUILD_PATH}/lotusble-${VERSION}.partitions.bin
 
-zip -9 -j ${BUILD_PATH}/lotusble-firmware-${VERSION}.zip ${BUILD_PATH}/firmware-${VERSION}.bin ${BUILD_PATH}/firmware-${VERSION}.partitions.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/sdk/bin/bootloader_qio_80m.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/partitions/boot_app0.bin ./flash_node.sh
+zip -9 -j ${BUILD_PATH}/lotusble-firmware-${VERSION}.zip ${BUILD_PATH}/lotusble-${VERSION}.bin ${BUILD_PATH}/lotusble-${VERSION}.partitions.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/sdk/bin/bootloader_qio_80m.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/partitions/boot_app0.bin ./flash_node.sh
 
 echo "done"

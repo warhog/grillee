@@ -1,7 +1,23 @@
+/**
+* Copyright (C) 2020 warhog <warhog@gmx.de>
+* 
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+**/
 #pragma once
 #include <Arduino.h>
 #include <FunctionalInterrupt.h>
-#include <MedianFilterLib.h>
+#include <MedianFilterLib2.h>
 
 #include "timeout.h"
 #include "ledc.h"
@@ -26,9 +42,7 @@ namespace ventilation {
 
     class Fan {
         public:
-            Fan(gpio_num_t pinFanPwm, gpio_num_t pinFanRpm, void (*rpmIsr)()) : _pinFanPwm(pinFanPwm), _pinFanRpm(pinFanRpm) {
-                _medianFilterRpm = new MedianFilter<uint16_t>(5);
-
+            Fan(gpio_num_t pinFanPwm, gpio_num_t pinFanRpm, void (*rpmIsr)()) : _pinFanPwm(pinFanPwm), _pinFanRpm(pinFanRpm), _medianFilterRpm(5) {
                 // setup pin for pwm fan
                 pinMode(pinFanPwm, OUTPUT);
                 digitalWrite(pinFanPwm, LOW);
@@ -58,7 +72,7 @@ namespace ventilation {
                     _timeoutRpm.reset();
                     _rpmRaw = ((_ticksRpm * RPM_CALCULATION_TIMEFRAME) / PULSES_PER_ROTATION);
                     _ticksRpm = 0;
-                    _rpmFiltered = _medianFilterRpm->AddValue(_rpmRaw);
+                    _rpmFiltered = _medianFilterRpm.AddValue(_rpmRaw);
 
                     if (!_rpmAlarm && _rpmFiltered < MIN_RPM) {
                         // no alarm yet and rpm is too low
@@ -119,7 +133,7 @@ namespace ventilation {
             uint16_t _rpmRaw{0};
             uint16_t _rpmFiltered{0};
             TimeoutMs _timeoutRpm{UPDATE_RPM_EVERY_X_MILLIS};
-            MedianFilter<uint16_t> *_medianFilterRpm;
+            MedianFilter2<uint16_t> _medianFilterRpm;
             EdgeDetector<uint16_t> _fanPercentChanged{0, 5};
             bool _rpmAlarm{false};
             uint8_t _rpmAlarmCounter{0};

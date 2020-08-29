@@ -1,5 +1,21 @@
+/**
+* Copyright (C) 2020 warhog <warhog@gmx.de>
+* 
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+**/
 #include <Arduino.h>
-#include <MedianFilterLib.h>
+#include <MedianFilterLib2.h>
 #include <Mcp320x.h>
 
 #include "timeout.h"
@@ -8,7 +24,6 @@
 #include "bleserver.h"
 
 #include "battery.h"
-#include "adc.h"
 #include "adc_mcp3208.h"
 #include "sensortype.h"
 #include "probe.h"
@@ -24,6 +39,7 @@
 
 //#define DEBUG
 
+// GPIO definitions
 const gpio_num_t PIN_FAN = GPIO_NUM_26;
 const gpio_num_t PIN_RPM = GPIO_NUM_27;
 const gpio_num_t PIN_ALARM_BUZZER = GPIO_NUM_16;
@@ -33,6 +49,7 @@ const gpio_num_t PIN_LED_G = GPIO_NUM_33;
 const gpio_num_t PIN_LED_B = GPIO_NUM_25;
 const gpio_num_t PIN_WEB_UPDATE = GPIO_NUM_34;
 
+// adc chip io channel definition
 const MCP3208::Channel ADC_CHANNEL_BATTERY = MCP3208::Channel::SINGLE_1;
 const MCP3208::Channel ADC_CHANNEL_POTI = MCP3208::Channel::SINGLE_0;
 const MCP3208::Channel ADC_CHANNEL_PROBE0 = MCP3208::Channel::SINGLE_7;
@@ -41,20 +58,22 @@ const MCP3208::Channel ADC_CHANNEL_PROBE1 = MCP3208::Channel::SINGLE_6;
 // wether device is controlled by bluetooth device or poti
 bool controlByBle = false;
 
+// main loop loop time
 unsigned long loopTime = 0L;
 unsigned long lastLoopTimeRun = 0L;
 
 TimeoutMs timeoutReadPoti(25);
-MedianFilter<uint16_t> medianFilterPoti(10);
+MedianFilter2<uint16_t> medianFilterPoti(10);
 
 EdgeDetector<float> batteryChanged(0, 0.1);
 EdgeDetector<uint16_t> rpmChanged(0, 100);
 EdgeDetector<uint8_t> fanPercentChanged(0);
+EdgeDetector<uint16_t> fanPercentPotiChanged(0);
 
 EdgeDetector<int16_t> probe1Changed(0, 1);
 EdgeDetector<int16_t> probe2Changed(0, 1);
 
-BleServer bleServer;
+ble::BleServer bleServer;
 util::Led ledR(PIN_LED_R, util::LEDC_CHANNEL_LED_R, true);
 util::Led ledG(PIN_LED_G, util::LEDC_CHANNEL_LED_G, true);
 util::Led ledB(PIN_LED_B, util::LEDC_CHANNEL_LED_B, true);
@@ -216,7 +235,10 @@ void setup() {
         	wifiWebServer.begin();
 	    }
 #ifndef DEBUG
-	}
+	} else {
+        // disable wifi
+        WiFi.mode(WIFI_OFF);
+    }
 #endif
 
     uint16_t setpoint1 = storage.getSetpoint1();
@@ -281,7 +303,7 @@ void loop() {
         if (fanPercentFiltered >= 95) {
             fanPercentFiltered = 100;
         }
-        if (fan.getFanPercent() != fanPercentFiltered) {
+        if (fanPercentPotiChanged(fanPercentFiltered)) {
             fan.setFanPercent(fanPercentFiltered);
         }
     }
