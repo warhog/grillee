@@ -22,7 +22,7 @@ bool WifiAp::connect() {
 #ifdef DEBUG
     Serial.println(F("setting up wifi ap"));
 #endif
-    String wifiApName = "lotusble-";
+    String wifiApName = "grillee-";
     wifiApName += getChipIdAsString();
     if (!WiFi.softAP(wifiApName.c_str(), "")) {
 #ifdef DEBUG

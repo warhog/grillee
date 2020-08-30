@@ -1,4 +1,4 @@
-# LotusBLE
+# Grillee
 
 ## Legal
 LotusGrill&reg; is a registered trademark of [LotusGrill GmbH](https://lotusgrill.de).
@@ -17,6 +17,7 @@ Everything in this repo is provided as it is. I give no guarantee or take any re
 ## Details
 This project is a digital, bluetooth enabled control unit for LotusGrill&reg; styled grills. These kind of grills normally comes with a simple potentiometer for regulating the fan speed (correlating with the heat produces by the coal). After a few years of heavy usage of my LotusGrill&reg; the potentiometer was broken. Instead of replacing it I decided to create this control unit for improved handling.
 
+Highlights:
 * Bluetooth control (using an app)
 * Manual (bluetoothless) control
 * Fan rpm monitoring
@@ -44,7 +45,7 @@ The RGB LED shows the different states of operation. Blue light shows that the u
 
 
 ### Update
-Press the webupdate button and the reset button in parallel. Keep the webupdate button pressed while releasing the reset button and hold for 5 seconds. The board should start up in webupdate mode now. Search for a wifi network called `lotusble-....`. The dots are the serial number of the ESP32 module. Connect to the wifi and browse the url: `http://192.168.4.1`. The web ui gives you the option to upload a new software.
+Press the webupdate button and the reset button in parallel. Keep the webupdate button pressed while releasing the reset button and hold for 5 seconds. The board should start up in webupdate mode now. Search for a wifi network called `grillee-....`. The dots are the serial number of the ESP32 module. Connect to the wifi and browse the url: `http://192.168.4.1`. The web ui gives you the option to upload a new software.
 
 ## Control unit software
 The control unit software is using Arduino on ESP32. The measurement data for the different sensors was taken from the WLANThermo Nano project ([source](https://github.com/WLANThermo-nano/WLANThermo_ESP32_Software/blob/master/src/temperature/TemperatureBase.cpp)).

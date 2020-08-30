@@ -19,7 +19,7 @@
 namespace ble {
 
     void BleServer::begin() {
-        BLEDevice::init("LotusBLE");
+        BLEDevice::init("Grillee");
         _server = BLEDevice::createServer();
         _server->setCallbacks(new MyServerCallbacks(this));
 

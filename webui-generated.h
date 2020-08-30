@@ -63,7 +63,7 @@ constexpr static char const *header = R"(
             background-color: #e74c3c;
         }
     </style>
-    <title>lotusble web ui</title>
+    <title>grillee web ui</title>
 </head>
 <body>
 <div id='overlay'>
@@ -78,7 +78,7 @@ constexpr static char const *header = R"(
     </div>
 </div>
 <div id='content'>
-    <h1>lotusble web ui</h1>
+    <h1>grillee web ui</h1>
     chip id: %CHIPID%<br />
     current version: %VERSION%<br />
     build date: %DATETIME% %COMMIT%<br />

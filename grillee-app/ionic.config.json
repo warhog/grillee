@@ -1,0 +1,7 @@
+{
+  "name": "grillee-app",
+  "integrations": {
+    "cordova": {}
+  },
+  "type": "angular"
+}

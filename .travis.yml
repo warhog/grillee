@@ -19,7 +19,7 @@ matrix:
         - curl -sL https://deb.nodesource.com/setup_12.x | bash -
         - apt-get install nodejs
         - apt-get install build-essential
-        - cd lotusble-app
+        - cd grillee-app
         - npm install ionic cordova
         - npm install
       script:
@@ -41,8 +41,8 @@ deploy:
   api_key: $GITHUB_TOKEN  # set as env variable in the travis build settings page
   file_glob: true
   file:
-    - lotusble-*.zip
-    - lotusble-*.bin
+    - grillee-*.zip
+    - grillee-*.bin
   keep_history: true
   prerelease: true
   overwrite: true

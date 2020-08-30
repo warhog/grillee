@@ -15,7 +15,7 @@ sed -i "s/NO_TRAVIS_BUILD/${VERSION}/g" version.h
 
 # use the latest available tag here to make sure node can register on backend
 VERSION_SAFE=$(git describe --tags | awk '{split($0,a,"-"); print a[1]}')
-sed -i "s/LOTUSBLE-R0.0.0/LOTUSBLE-R${VERSION_SAFE}/g" version.h
+sed -i "s/GRILLEE-R0.0.0/GRILLEE-R${VERSION_SAFE}/g" version.h
 
 # make display available for arduino CLI
 /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
@@ -78,16 +78,16 @@ fi
 
 echo "building"
 BUILD_PATH=./build
-BUILD_OUTPUT=$(arduino --verify --pref build.path=${BUILD_PATH} --preserve-temp-files lotusble.ino 2>&1)
+BUILD_OUTPUT=$(arduino --verify --pref build.path=${BUILD_PATH} --preserve-temp-files grillee.ino 2>&1)
 if [ $? -ne 0 ]; then
     echo "failed to build: ${BUILD_OUTPUT}"
     exit 1
 fi
 
 echo "renaming binary"
-cp ${BUILD_PATH}/lotusble.ino.bin ${BUILD_PATH}/lotusble-${VERSION}.bin
-cp ${BUILD_PATH}/lotusble.ino.partitions.bin ${BUILD_PATH}/lotusble-${VERSION}.partitions.bin
+cp ${BUILD_PATH}/grillee.ino.bin ${BUILD_PATH}/grillee-${VERSION}.bin
+cp ${BUILD_PATH}/grillee.ino.partitions.bin ${BUILD_PATH}/grillee-${VERSION}.partitions.bin
 
-zip -9 -j ${BUILD_PATH}/lotusble-firmware-${VERSION}.zip ${BUILD_PATH}/lotusble-${VERSION}.bin ${BUILD_PATH}/lotusble-${VERSION}.partitions.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/sdk/bin/bootloader_qio_80m.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/partitions/boot_app0.bin ./flash_node.sh
+zip -9 -j ${BUILD_PATH}/grillee-firmware-${VERSION}.zip ${BUILD_PATH}/grillee-${VERSION}.bin ${BUILD_PATH}/grillee-${VERSION}.partitions.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/sdk/bin/bootloader_qio_80m.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/partitions/boot_app0.bin ./flash_node.sh
 
 echo "done"

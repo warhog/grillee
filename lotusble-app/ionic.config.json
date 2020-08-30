@@ -1,7 +1,0 @@
-{
-  "name": "lotusble-app",
-  "integrations": {
-    "cordova": {}
-  },
-  "type": "angular"
-}

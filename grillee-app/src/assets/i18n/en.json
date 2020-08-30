@@ -1,0 +1,78 @@
+{
+    "thermometer": {
+        "changeButtonText": "Change",
+        "probe": "Probe {{nr}}",
+        "alarmTextUppercase": "ALARM",
+        "rssiStatus": "{{rssi}} db",
+        "volt": "V",
+        "rpm": "rpm",
+        "probeNotConnectedText": "Not connected",
+        "probeUnknownSensor": "Unknown sensor"
+    },
+    "settings": {
+        "settings": "Settings",
+        "sensor": "Sensor settings",
+        "probe": "Probe {{nr}}",
+        "general": "General",
+        "fahrenheitText": "Show temperatures in °F (Fahrenheit)"
+    },
+    "general": {
+        "title": "Grillee",
+        "grillThermometer": "Grill Thermometer",
+        "backgroundServiceDescription": "Receives data in background.",
+        "thermometer": "Thermometer",
+        "trademarkText": "LotusGrill® is a registered trademark of LotusGrill GmbH."
+    },
+    "setpoint": {
+        "setpointTitle": "Setpoint",
+        "type": "Type",
+        "doneness": "Doneness",
+        "customTemperature": "Custom temperature",
+        "customTemperatureHintText": "Enter temperature",
+        "closeButtonText": "Close"
+    },
+    "home": {
+        "scanButtonText": "Scan",
+        "noDevicesFoundText": "No devices found.",
+        "bleNotAvailableText": "Bluetooth Low Energy not activated!"
+    },
+    "target": {
+        "connectingText": "Connecting... please wait...",
+        "reconnectText": "Trying to reconnect...",
+        "scanningText": "Scanning for devices...",
+        "cannotWriteDataText": "Cannot write data to device ({{msg}}).",
+        "noConnectionErrorText": "Cannot connect, please select device."
+    },
+    "util": {
+        "pressExitAgainText": "Press again to exit..."
+    },
+    "alarm": {
+        "lostConnectionText": "Lost connection to Grillee.",
+        "minRpmText": "Fan speed below {{minFanRpm}} rpm.",
+        "lowBatteryText": "Low battery voltage.",
+        "probeReachedSetpoint": "Probe {{probeNr}} reached target temperature."
+    },
+    "meatTemperatures": {
+        "porkRare": "Rare",
+        "porkDone": "Done",
+        "beefRare": "Rare",
+        "beefMedium": "Medium",
+        "beefDone": "Done",
+        "beefWellDone": "Well done",
+        "groundMeatWellDone": "Well done",
+        "calfRare": "Rare",
+        "calfMedium": "Medium",
+        "calfDone": "Done",
+        "calfWellDone": "Well done",
+        "chickenDone": "Done",
+        "customCustom": "Custom"
+    },
+    "meatTypes": {
+        "beef": "Beef",
+        "pork": "Pork",
+        "chicken": "Chicken",
+        "groundmeat": "Ground meat",
+        "calf": "Calf",
+        "custom": "Custom"
+    }
+}
