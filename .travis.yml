@@ -7,7 +7,7 @@ jobs:
     # app for android
     - language: node_js
       # os: linux
-      # dist: bionic
+      dist: bionic
       android:
         components:
           - tools
@@ -47,7 +47,6 @@ jobs:
 
 deploy:
   provider: releases
-  skip_cleanup: true
   token: $GITHUB_TOKEN  # set as env variable in the travis build settings page
   file_glob: true
   file:
