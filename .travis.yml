@@ -1,10 +1,12 @@
-matrix:
+language: cpp
+dist: focal
+
+jobs:
   include:
     # app for android
     - language: android
       os: linux
       dist: focal
-      sudo: false
       android:
         components:
           - tools
@@ -22,14 +24,9 @@ matrix:
             - gradle
             - nodejs
             - build-essential
-      licenses:
-        - android-sdk-preview-license-.+
-        - android-sdk-license-.+
-        - google-gdk-license-.+
       install:
         - cd grillee-app
-        - nvm install lts/*
-        - npm run clean
+        - nvm install 14
         - npm install ionic cordova
         - npm install
       script:
@@ -40,7 +37,7 @@ matrix:
     # firmware
     - language: cpp
       os: linux
-      dist: bionic
+      dist: focal
       script:
         - ./build_travis.sh
         - cd build
@@ -48,12 +45,11 @@ matrix:
 deploy:
   provider: releases
   skip_cleanup: true
-  api_key: $GITHUB_TOKEN  # set as env variable in the travis build settings page
+  token: $GITHUB_TOKEN  # set as env variable in the travis build settings page
   file_glob: true
   file:
     - grillee-*.zip
     - grillee-*.bin
-  keep_history: true
   prerelease: true
   overwrite: true
   on:
