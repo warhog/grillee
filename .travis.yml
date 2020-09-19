@@ -1,12 +1,13 @@
 language: cpp
 dist: focal
+os: linux
 
 jobs:
   include:
     # app for android
-    - language: android
-      os: linux
-      dist: bionic
+    - language: node_js
+      # os: linux
+      # dist: bionic
       android:
         components:
           - tools
@@ -14,23 +15,21 @@ jobs:
           - tools
           - build-tools-28.0.3
           - android-28
-      addons:
-        apt:
-          packages:
-            - ant
-            - nodejs
-            - build-essential
-            - lib32stdc++6
-            - libstdc++6
-            - libsecret-1-dev
-            - lib32z1
-            - gcc-4.8
-            - g++-4.8
-            - gcc-4.8-multilib
-            - g++-4.8-multilib
-      install:
+      # addons:
+      #   apt:
+      #     packages:
+      #       - build-essential
+      #       - lib32stdc++6
+      #       - libstdc++6
+      #       - libsecret-1-dev
+      #       - lib32z1
+      #       - gcc-4.8
+      #       - g++-4.8
+      #       - gcc-4.8-multilib
+      #       - g++-4.8-multilib
+      # install:
         - cd grillee-app
-        - nvm install 14
+      #   - nvm install 14
         - npm install ionic cordova
         - npm install
       script:
@@ -40,8 +39,8 @@ jobs:
       
     # firmware
     - language: cpp
-      os: linux
-      dist: focal
+      # os: linux
+      # dist: focal
       script:
         - ./build_travis.sh
         - cd build
