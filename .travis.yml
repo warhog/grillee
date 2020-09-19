@@ -18,10 +18,6 @@ jobs:
         apt:
           packages:
             - ant
-            - oracle-java8-installer
-            - oracle-java8-set-default
-            - jq
-            - gradle
             - nodejs
             - build-essential
             - lib32stdc++6
