@@ -22,7 +22,6 @@
 #include "toggle.h"
 #include "edgedetector.h"
 #include "bleserver.h"
-
 #include "battery.h"
 #include "adc_mcp3208.h"
 #include "sensortype.h"

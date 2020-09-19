@@ -49,6 +49,11 @@ The control unit software is using Arduino on ESP32. The measurement data for th
 
 The board has test pins for the serial connection to initially flash the software.
 
+## Libraries used
+MedianFilterLib2 v1.0.0
+
+Mcp3208 v1.4.0
+
 ## Hardware
 The hardware schematics, gerber files, ... can be found in the `hardware` folder. The components were chosen to be easy to obtain. 
 The basic measurement circuit was taken from the WLANThermo Nano project ([schematics](https://github.com/WLANThermo-nano/WLANThermo_nano_Hardware/blob/master/nano%20v1%2B/circuit/Schaltplan%20WLANThermo%20Nano%20V1%2B.pdf)).
