@@ -62,6 +62,13 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+echo "install library ArduinoJson"
+DEPENDENCY_OUTPUT=$(arduino --install-library ArduinoJson:6.15.1 > /dev/null 2>&1)
+if [ $? -ne 0 ]; then
+    echo "failed to install ArduinoJson: ${DEPENDENCY_OUTPUT}"
+    exit 1
+fi
+
 echo "install library Mcp3208"
 DEPENDENCY_OUTPUT=$(arduino --install-library Mcp3208:1.4.0 > /dev/null 2>&1)
 if [ $? -ne 0 ]; then
