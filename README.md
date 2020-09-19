@@ -5,9 +5,6 @@ LotusGrill&reg; is a registered trademark of [LotusGrill GmbH](https://lotusgril
 
 This project has in no way a connection to the LotusGrill GmbH. It is a private hobby project.
 
-TODO
-audio sounds app
-
 ## License
 GPLv3 licensed, see [LICENSE.md](license.md).
 
@@ -53,5 +50,5 @@ The control unit software is using Arduino on ESP32. The measurement data for th
 The board has test pins for the serial connection to initially flash the software.
 
 ## Hardware
-The hardware schematics, gerber files, ... can be found in the `hardware` folder. It was important during design that all parts are easy to obtain. 
+The hardware schematics, gerber files, ... can be found in the `hardware` folder. The components were chosen to be easy to obtain. 
 The basic measurement circuit was taken from the WLANThermo Nano project ([schematics](https://github.com/WLANThermo-nano/WLANThermo_nano_Hardware/blob/master/nano%20v1%2B/circuit/Schaltplan%20WLANThermo%20Nano%20V1%2B.pdf)).

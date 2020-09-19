@@ -538,6 +538,10 @@ export class TargetService {
    * @param data the received ble data
    */
   processReadBleData(entry: ReadAndRegisterData, data: ArrayBuffer) {
+    if (Array.isArray(data)) {
+      // since some update (unknown exactly), data is in reality an array containing the ArrayBuffer at the first index
+      data = data[0];
+    }
     if (entry.datatype == 'uint8_t') {
       entry.behaviorSubject.next(new Uint8Array(data)[0]);
     } else if (entry.datatype == 'uint16_t') {
