@@ -6,7 +6,7 @@ jobs:
     # app for android
     - language: android
       os: linux
-      dist: focal
+      dist: bionic
       android:
         components:
           - tools
