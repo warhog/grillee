@@ -24,7 +24,7 @@ Highlights:
 * Webupdate
 
 ## App
-The app is currently only available for Android. Due to the usage of the [Ionic Framework](https://ionicframework.com/) it can be also compiled for iOS.
+The app is currently only available for Android on the Google Play Store. Due to the usage of the [Ionic Framework](https://ionicframework.com/) it can be also compiled for iOS.
 
 Google Play Store: TODO: LINK
 
