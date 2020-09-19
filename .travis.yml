@@ -24,6 +24,14 @@ jobs:
             - gradle
             - nodejs
             - build-essential
+            - lib32stdc++6
+            - libstdc++6
+            - libsecret-1-dev
+            - lib32z1
+            - gcc-4.8
+            - g++-4.8
+            - gcc-4.8-multilib
+            - g++-4.8-multilib
       install:
         - cd grillee-app
         - nvm install 14
