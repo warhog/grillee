@@ -27,7 +27,7 @@ jobs:
       #       - g++-4.8
       #       - gcc-4.8-multilib
       #       - g++-4.8-multilib
-      # install:
+      install:
         - cd grillee-app
       #   - nvm install 14
         - npm install ionic cordova
