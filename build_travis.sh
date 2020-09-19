@@ -95,6 +95,6 @@ echo "renaming binary"
 cp ${BUILD_PATH}/grillee.ino.bin ${BUILD_PATH}/grillee-${VERSION}.bin
 cp ${BUILD_PATH}/grillee.ino.partitions.bin ${BUILD_PATH}/grillee-${VERSION}.partitions.bin
 
-zip -9 -j ${BUILD_PATH}/grillee-firmware-${VERSION}.zip ${BUILD_PATH}/grillee-${VERSION}.bin ${BUILD_PATH}/grillee-${VERSION}.partitions.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/sdk/bin/bootloader_qio_80m.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/partitions/boot_app0.bin ./flash_node.sh
+zip -9 -j ${BUILD_PATH}/grillee-firmware-${VERSION}.zip ${BUILD_PATH}/grillee-${VERSION}.bin ${BUILD_PATH}/grillee-${VERSION}.partitions.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/sdk/bin/bootloader_qio_80m.bin ~/.arduino15/packages/esp32/hardware/esp32/1.0.3/tools/partitions/boot_app0.bin
 
 echo "done"
